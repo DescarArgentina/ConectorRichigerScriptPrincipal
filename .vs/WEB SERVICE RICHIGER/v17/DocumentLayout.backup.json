@@ -1,0 +1,92 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|e:\\proyectos\\richiger\\conector\\web service\\web service richiger\\tablas_sg2_sh3.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tablas_sg2_sh3.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|e:\\proyectos\\richiger\\conector\\web service\\web service richiger\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|e:\\proyectos\\richiger\\conector\\web service\\web service richiger\\tabla_sg1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tabla_sg1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|e:\\proyectos\\richiger\\conector\\web service\\web service richiger\\tabla_sb1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tabla_sb1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Tabla_SG1.cs",
+              "DocumentMoniker": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Tabla_SG1.cs",
+              "RelativeDocumentMoniker": "Tabla_SG1.cs",
+              "ToolTip": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Tabla_SG1.cs",
+              "RelativeToolTip": "Tabla_SG1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAH8BAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-03T13:59:00.208Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Tabla_SB1.cs",
+              "DocumentMoniker": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Tabla_SB1.cs",
+              "RelativeDocumentMoniker": "Tabla_SB1.cs",
+              "ToolTip": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Tabla_SB1.cs",
+              "RelativeToolTip": "Tabla_SB1.cs",
+              "ViewState": "AgIAAIkAAAAAAAAAAAAwwEoAAABfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-03T13:58:21.958Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Tablas_SG2_SH3.cs",
+              "DocumentMoniker": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Tablas_SG2_SH3.cs",
+              "RelativeDocumentMoniker": "Tablas_SG2_SH3.cs",
+              "ToolTip": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Tablas_SG2_SH3.cs",
+              "RelativeToolTip": "Tablas_SG2_SH3.cs",
+              "ViewState": "AgIAANoAAAAAAAAAAAAwwOQAAAA5AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T14:10:25.24Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "E:\\Proyectos\\Richiger\\Conector\\WEB SERVICE\\WEB SERVICE RICHIGER\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAGwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T16:48:07.951Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

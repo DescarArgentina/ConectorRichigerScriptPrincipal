@@ -1,0 +1,58 @@
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\WEB SERVICE RICHIGER.exe
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\WEB SERVICE RICHIGER.deps.json
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\WEB SERVICE RICHIGER.runtimeconfig.json
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\WEB SERVICE RICHIGER.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\WEB SERVICE RICHIGER.pdb
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Newtonsoft.Json.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Data.SqlClient.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win-arm64\native\sni.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win-x64\native\sni.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win-x86\native\sni.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\unix\lib\net6.0\System.Data.SqlClient.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win\lib\net6.0\System.Data.SqlClient.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.csproj.AssemblyReference.cache
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.GeneratedMSBuildEditorConfig.editorconfig
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.AssemblyInfoInputs.cache
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.AssemblyInfo.cs
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.csproj.CoreCompileInputs.cache
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\refint\WEB SERVICE RICHIGER.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.pdb
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERVICE RICHIGER.genruntimeconfig.cache
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\ref\WEB SERVICE RICHIGER.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\obj\Debug\net7.0\WEB SERV.E2EB518B.Up2Date
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Azure.Core.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Azure.Identity.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Bcl.AsyncInterfaces.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Bcl.Cryptography.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Data.SqlClient.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Extensions.Caching.Abstractions.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Extensions.Caching.Memory.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Extensions.Logging.Abstractions.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Extensions.Options.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Extensions.Primitives.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Identity.Client.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.Identity.Client.Extensions.Msal.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.IdentityModel.Abstractions.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.IdentityModel.JsonWebTokens.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.IdentityModel.Logging.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.IdentityModel.Protocols.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.IdentityModel.Tokens.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Microsoft.SqlServer.Server.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.ClientModel.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Configuration.ConfigurationManager.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Diagnostics.DiagnosticSource.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Formats.Asn1.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.IdentityModel.Tokens.Jwt.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.IO.Pipelines.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Memory.Data.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Security.Cryptography.Pkcs.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Security.Cryptography.ProtectedData.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Text.Encodings.Web.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\System.Text.Json.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
+E:\Proyectos\Richiger\Conector\WEB SERVICE\WEB SERVICE RICHIGER\bin\Debug\net7.0\Newtonsoft.Json.Bson.dll
