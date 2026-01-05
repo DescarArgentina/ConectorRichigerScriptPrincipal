@@ -136,7 +136,7 @@ namespace WEB_SERVICE_RICHIGER
         public static List<string> jsonSB1()
         {
             //string connectionString = "Data Source=DEPLM-07-PC\\SQLEXPRESS;Initial Catalog=RichigerMBOM;User ID=sa;Password=infodba";
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = @"SELECT DISTINCT
                 Product.id_Table,
@@ -145,11 +145,11 @@ namespace WEB_SERVICE_RICHIGER
                	'PA' as tipo,
                	'10' as deposito,
                	MAX(CASE
-				WHEN uud.title = 'Agm4_Unidad' THEN uud.value
-				WHEN uud.title = 'Agm4_Kilogramos' THEN uud.value
-				WHEN uud.title = 'Agm4_Litros' THEN uud.value
-				WHEN uud.title = 'Agm4_Metros' THEN uud.value
-				WHEN uud.title = 'Agm4_Unidad' THEN uud.value
+				WHEN uud.title = 'Ric4_Unidad' THEN uud.value
+				WHEN uud.title = 'Ric4_Kilogramos' THEN uud.value
+				WHEN uud.title = 'Ric4_Litros' THEN uud.value
+				WHEN uud.title = 'Ric4_Metros' THEN uud.value
+				WHEN uud.title = 'Ric4_Unidad' THEN uud.value
 				ELSE 'UN' END) AS 'unMedida',
 				pr.revision AS 'Revision',
 				CASE WHEN pr.name LIKE '%CONJ.CUBIERTAS%' OR pr.name LIKE '%GPS%' THEN
@@ -229,7 +229,7 @@ namespace WEB_SERVICE_RICHIGER
         public static void poblarBase(string codigo, string descripcion, string tipo, string deposito, string unMedida, string revision, int estado, string mensaje)
         {
             //string connectionString = "Data Source=DEPLM-07-PC\\SQLEXPRESS;Initial Catalog=ProtheusDescar;User ID=sa;Password=infodba";
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = "  INSERT INTO SB1 (codigo, descripcion, tipo, deposito, unMedida, revision, estado, mensaje)\r\nSELECT @codigo, @descripcion, @tipo, @deposito, @unMedida, @revision, @estado, @mensaje\r\nWHERE NOT EXISTS (SELECT 1 FROM SB1 WHERE codigo = @codigo)";
             try
@@ -262,7 +262,7 @@ namespace WEB_SERVICE_RICHIGER
         public static void ActualizarBase(int estado, string mensaje, string codigo, string descripcion)
         {
             //string connectionString = "Data Source=DEPLM-07-PC\\SQLEXPRESS;Initial Catalog=ProtheusDescar;User ID=sa;Password=infodba";
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = @"UPDATE SB1
                           SET estado = @estado, mensaje = @mensaje

@@ -95,7 +95,9 @@ namespace WEB_SERVICE_RICHIGER
         {
 
             //string connectionString = "Server=DEPLM-07-PC\\SQLEXPRESS;Database=RichigerBOP;Trusted_Connection=True;";
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+
+
 
             string query = @"WITH ProcessData AS (
     SELECT
@@ -262,78 +264,79 @@ LEFT JOIN TA_ByPO ta
 WHERE MEProcess.subType = 'MEProcess'
 ORDER BY MEProcess.catalogueId;";
 
-
             List<string> jsonProductos = new List<string>();
             try
             {
                 using (var connection = new SqlConnection(connectionString))
                 {
-                    SqlCommand command = new SqlCommand(query, connection);
                     connection.Open();
-                    SqlDataReader reader = command.ExecuteReader();
 
-                    Dictionary<string, dynamic> productosDict = new Dictionary<string, dynamic>();
-                    int operacion = 0;
-                    while (reader.Read())
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        string producto = reader["codigo"]?.ToString();
-                        string codigo = "01"; // Se mantiene como constante por ahora
-                        
+                        // Diccionario para agrupar por producto
+                        Dictionary<string, dynamic> productosDict = new Dictionary<string, dynamic>();
+                        int operacion = 0;
 
-                        string tiempo = reader["tiempo"]?.ToString().Replace(',','.');
-                        if (reader["tiempo"] == DBNull.Value)
+                        while (reader.Read())
                         {
-                            tiempo = "0.00"; // default
-                        }
-                        else
-                        {
-                            var dec = Convert.ToDecimal(reader["tiempo"], CultureInfo.InvariantCulture);
-                            tiempo = dec.ToString("0.00", CultureInfo.InvariantCulture); // <-- SIEMPRE 2 decimales
-                        }
+                            string producto = reader["codigo"]?.ToString();
+                            string codigo = "01"; // Se mantiene como constante por ahora
 
-                        operacion = 10;
-                        //string recurso = reader["instancedWorkArea"]?.ToString();
-                        string nombreProceso = reader["Process_name"]?.ToString();
-                        string loteStd = reader["lote"]?.ToString();
-                        string cenTrab = reader["Workarea_code"]?.ToString();
-                        string setup = reader["SetupTime"] == DBNull.Value ? "0.00" : Convert.ToDecimal(reader["SetupTime"], CultureInfo.InvariantCulture).ToString("0.00", CultureInfo.InvariantCulture);
-
-                        // Crear el procedimiento
-                        var procedimiento = new Procedimiento
-                        {
-                            detalle = new List<CampoValor>
+                            string tiempo = reader["tiempo"]?.ToString().Replace(',', '.');
+                            if (reader["tiempo"] == DBNull.Value)
                             {
-                                new CampoValor { campo = "operacion", valor = operacion.ToString() },
-                                new CampoValor { campo = "recurso", valor = "" },
-                                new CampoValor { campo = "tiempo", valor = tiempo },
-                                new CampoValor { campo = "setup", valor = setup },
-                                new CampoValor {campo = "descripcion", valor = nombreProceso },
-                                new CampoValor {campo = "loteStd", valor = loteStd},
-                                new CampoValor {campo = "centroTrab", valor = cenTrab }
+                                tiempo = "0.00"; // default
                             }
-                        };
-
-                        // Verificar si el producto ya está en el diccionario
-                        if (productosDict.ContainsKey(producto))
-                        {
-                            productosDict[producto].procedimiento.Add(procedimiento);
-                        }
-                        else
-                        {
-                            productosDict[producto] = new
+                            else
                             {
-                                codigo = codigo,
-                                producto = producto,
-                                procedimiento = new List<Procedimiento> { procedimiento }
-                            };
-                        }
-                    }
+                                var dec = Convert.ToDecimal(reader["tiempo"], CultureInfo.InvariantCulture);
+                                tiempo = dec.ToString("0.00", CultureInfo.InvariantCulture); // <-- SIEMPRE 2 decimales
+                            }
 
-                    // Convertir cada elemento del diccionario en JSON
-                    foreach (var item in productosDict.Values)
-                    {
-                        string json = JsonConvert.SerializeObject(item, Formatting.Indented);
-                        jsonProductos.Add(json);
+                            operacion = 10;
+                            string nombreProceso = reader["Process_name"]?.ToString();
+                            string loteStd = reader["lote"]?.ToString();
+                            string cenTrab = reader["Workarea_code"]?.ToString();
+                            string setup = reader["SetupTime"] == DBNull.Value ? "0.00" : Convert.ToDecimal(reader["SetupTime"], CultureInfo.InvariantCulture).ToString("0.00", CultureInfo.InvariantCulture);
+
+                            // Crear el procedimiento
+                            var procedimiento = new Procedimiento
+                            {
+                                detalle = new List<CampoValor>
+                                {
+                                    new CampoValor { campo = "operacion", valor = operacion.ToString() },
+                                    new CampoValor { campo = "recurso", valor = "" },
+                                    new CampoValor { campo = "tiempo", valor = tiempo },
+                                    new CampoValor { campo = "setup", valor = setup },
+                                    new CampoValor {campo = "descripcion", valor = nombreProceso },
+                                    new CampoValor {campo = "loteStd", valor = loteStd},
+                                    new CampoValor {campo = "centroTrab", valor = cenTrab }
+                                }
+                            };
+
+                            // Verificar si el producto ya está en el diccionario
+                            if (productosDict.ContainsKey(producto))
+                            {
+                                productosDict[producto].procedimiento.Add(procedimiento);
+                            }
+                            else
+                            {
+                                productosDict[producto] = new
+                                {
+                                    codigo = codigo,
+                                    producto = producto,
+                                    procedimiento = new List<Procedimiento> { procedimiento }
+                                };
+                            }
+                        }
+
+                        // Convertir cada elemento del diccionario en JSON
+                        foreach (var item in productosDict.Values)
+                        {
+                            string json = JsonConvert.SerializeObject(item, Formatting.Indented);
+                            jsonProductos.Add(json);
+                        }
                     }
                 }
             }
@@ -345,11 +348,12 @@ ORDER BY MEProcess.catalogueId;";
             return jsonProductos;
         }
 
-            public static List<string> jsonSB1_BOP()
+        public static List<string> jsonSB1_BOP()
         {
 
             //string connectionString = "Server=DEPLM-07-PC\\SQLEXPRESS;Database=RichigerBOP;Trusted_Connection=True;";
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            ;
 
             string query = @"WITH ProcessData AS (
                 SELECT

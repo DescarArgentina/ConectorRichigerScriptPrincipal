@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -31,299 +32,229 @@ namespace WEB_SERVICE_RICHIGER
             _httpClient = new HttpClient();
         }
         public static async Task postSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
+{
+    // Upsert: intenta Incluir (POST) y si el ERP devuelve 409 (ya existe), reintenta con Modificar (PUT).
+    string urlPost = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
+    string urlPut  = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
+    string username = "ADMIN";
+    string password = "Totvs2024##";
+
+    using (HttpClient client = new HttpClient())
+    {
+        var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
+
+        foreach (var parent in estructuras)
         {
-            
-            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-            string username = "ADMIN"; // Usuario proporcionado
-            string password = "Totvs2024##"; // Contraseña proporcionada
-
-            using (HttpClient client = new HttpClient())
+            var jsonBody = new
             {
-                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
+                producto = parent.Key,
+                qtdBase = "1",
+                estructura = parent.Value
+            };
 
+            string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
 
-                foreach (var parent in estructuras)
+            Console.WriteLine("JSON generado:");
+            Console.WriteLine(jsonData);
+
+            // 1) POST /Incluir
+            int statusCodePost = 0;
+            string responsePost = string.Empty;
+
+            try
+            {
+                var contentPost = new StringContent(jsonData, Encoding.UTF8, "application/json");
+                HttpResponseMessage respPost = await client.PostAsync(urlPost, contentPost);
+
+                statusCodePost = (int)respPost.StatusCode;
+                responsePost = await respPost.Content.ReadAsStringAsync();
+
+                if (statusCodePost >= 200 && statusCodePost <= 299)
                 {
-                    var jsonBody = new
+                    Console.WriteLine($"POST TCEstructura -> {statusCodePost}");
+                    Console.WriteLine(responsePost);
+                    continue;
+                }
+
+                // 409 = ya existe en ERP: reintentar con PUT /Modificar
+                if (statusCodePost == 409)
+                {
+                    Console.WriteLine($"Ya existe (409). Intentando PUT /Modificar...");
+                    var contentPut = new StringContent(jsonData, Encoding.UTF8, "application/json");
+                    HttpResponseMessage respPut = await client.PutAsync(urlPut, contentPut);
+
+                    int statusCodePut = (int)respPut.StatusCode;
+                    string responsePut = await respPut.Content.ReadAsStringAsync();
+
+                    if (statusCodePut >= 200 && statusCodePut <= 299)
                     {
-                        producto = parent.Key,
-                        qtdBase = "1",
-                        estructura = parent.Value
-                    };
-
-                    string jsonData = JsonConvert.SerializeObject(jsonBody, Formatting.Indented);
-                    JObject obj = JObject.Parse(jsonData);
-
-                    // Obtener directamente el valor del campo "producto"
-                    string codigo = obj["producto"]?.ToString();
-
-                    // Asegurarse de que el código no sea nulo
-                    if (string.IsNullOrEmpty(codigo))
+                        Console.WriteLine($"PUT TCEstructura -> {statusCodePut}");
+                        Console.WriteLine(responsePut);
+                    }
+                    else
                     {
-                        // Manejar el caso cuando no se encuentra el código del producto
-                        Console.WriteLine("Error: No se pudo obtener el código del producto");
-                        continue;
+                        Console.WriteLine($"PUT falló: {statusCodePut}");
+                        Console.WriteLine(responsePut);
                     }
 
-                    // Ahora puedes usar el código del producto
-                    Console.WriteLine($"Código del producto: {codigo}");
+                    continue;
+                }
 
-                    // Continuar con el resto del procesamiento...
-                
-
-                // Imprimir el JSON generado
-                Console.WriteLine("JSON generado:");
-                    Console.WriteLine(jsonData);
-                    //Console.WriteLine(codigo);
-
-
-                    int statusCode = 0;
-                    string responseData = string.Empty;
-
-                    try
-                    {
-                        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                        HttpResponseMessage response = await client.PostAsync(url, content);
-
-                        // Leer el código de estado
-                        statusCode = (int)response.StatusCode;
-
-                        // Leer la respuesta como string
-                        responseData = await response.Content.ReadAsStringAsync();
-
-                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-                        response.EnsureSuccessStatusCode();
-
-                        Console.WriteLine($"Respuesta para producto {parent.Key}: {responseData}, {statusCode}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        // Se ejecutará siempre, tanto si hay error como si no
-                        //ActualizarBase(statusCode, responseData, codigo);
-                    }
+                // Otros códigos: loguear el cuerpo de respuesta para diagnóstico
+                Console.WriteLine($"POST falló: {statusCodePost}");
+                Console.WriteLine(responsePost);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al enviar estructura de producto {parent.Key}: {ex.Message}");
+                if (!string.IsNullOrWhiteSpace(responsePost))
+                {
+                    Console.WriteLine("Respuesta del servicio:");
+                    Console.WriteLine(responsePost);
                 }
             }
         }
+    }
+}
 
-        public async Task postSG1(string jsonString)
-        {
-            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-            string username = "ADMIN"; // Usuario proporcionado
-            string password = "Totvs2024##"; // Contraseña proporcionada
+//        public async Task postSG1(string jsonString)
+//        {
+//            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
+//            string username = "ADMIN"; // Usuario proporcionado
+//            string password = "Totvs2024##"; // Contraseña proporcionada
 
-            using (HttpClient client = new HttpClient())
-            {
-                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
+//            using (HttpClient client = new HttpClient())
+//            {
+//                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
+//                client.DefaultRequestHeaders.Authorization =
+//                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
 
-                try
-                {
-                    // Validar que el JSON sea válido
-                    JObject obj = JObject.Parse(jsonString);
+//                try
+//                {
+//                    // Validar que el JSON sea válido
+//                    JObject obj = JObject.Parse(jsonString);
 
-                    // Obtener directamente el valor del campo "producto"
-                    string codigo = obj["producto"]?.ToString();
+//                    // Obtener directamente el valor del campo "producto"
+//                    string codigo = obj["producto"]?.ToString();
 
-                    // Asegurarse de que el código no sea nulo
-                    if (string.IsNullOrEmpty(codigo))
-                    {
-                        Console.WriteLine("Error: No se pudo obtener el código del producto del JSON");
-                        Console.WriteLine($"JSON recibido: {jsonString}");
-                        return;
-                    }
+//                    // Asegurarse de que el código no sea nulo
+//                    if (string.IsNullOrEmpty(codigo))
+//                    {
+//                        Console.WriteLine("Error: No se pudo obtener el código del producto del JSON");
+//                        Console.WriteLine($"JSON recibido: {jsonString}");
+//                        return;
+//                    }
 
-                    // Ahora puedes usar el código del producto
-                    Console.WriteLine($"Código del producto: {codigo}");
+//                    // Ahora puedes usar el código del producto
+//                    Console.WriteLine($"Código del producto: {codigo}");
 
-                    // Imprimir el JSON que se enviará (ya viene formateado)
-                    Console.WriteLine("JSON a enviar:");
-                    Console.WriteLine(jsonString);
+//                    // Imprimir el JSON que se enviará (ya viene formateado)
+//                    Console.WriteLine("JSON a enviar:");
+//                    Console.WriteLine(jsonString);
 
-                    int statusCode = 0;
-                    string responseData = string.Empty;
+//                    int statusCode = 0;
+//                    string responseData = string.Empty;
 
-                    try
-                    {
-                        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-                        HttpResponseMessage response = await client.PostAsync(url, content);
+//                    try
+//                    {
+//                        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+//                        HttpResponseMessage response = await client.PostAsync(url, content);
 
-                        // Leer el código de estado
-                        statusCode = (int)response.StatusCode;
+//                        // Leer el código de estado
+//                        statusCode = (int)response.StatusCode;
 
-                        // Leer la respuesta como string
-                        responseData = await response.Content.ReadAsStringAsync();             
+//                        // Leer la respuesta como string
+//                        responseData = await response.Content.ReadAsStringAsync();             
 
-                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-                        response.EnsureSuccessStatusCode();
+//                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
+//                        response.EnsureSuccessStatusCode();
 
-                        Console.WriteLine($"Respuesta para producto {codigo}: {responseData}, {statusCode}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error al enviar producto {codigo}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        // Se ejecutará siempre, tanto si hay error como si no
-                        //ActualizarBase(statusCode, responseData, codigo);
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    Console.WriteLine($"Error al parsear JSON: {ex.Message}");
-                    Console.WriteLine($"JSON recibido: {jsonString}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error general: {ex.Message}");
-                }
-            }
-        }
-
-        //public async Task<List<string>> PostSG1(string apiUrl, List<string> jsonList, string username, string password)
-        //{
-        //    var results = new List<string>();
-
-        //    try
-        //    {
-        //        // Configurar Basic Authentication
-        //        var authValue = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-        //        _httpClient.DefaultRequestHeaders.Authorization =
-        //            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authValue);
-
-        //        foreach (var item in jsonList)
-        //        {
-        //            try
-        //            {
-        //                // Preparar el contenido JSON
-        //                var jsonPayload = JsonConvert.SerializeObject(item);
-        //                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-        //                // Realizar la petición POST
-        //                var response = await _httpClient.PostAsync(apiUrl, content);
-
-        //                // Verificar si la respuesta es exitosa
-        //                if (response.IsSuccessStatusCode)
-        //                {
-        //                    var responseContent = await response.Content.ReadAsStringAsync();
-        //                    results.Add(responseContent);
-        //                }
-        //                else
-        //                {
-        //                    var errorContent = await response.Content.ReadAsStringAsync();
-        //                    throw new HttpRequestException($"Error en la petición para item: {response.StatusCode} - {response.ReasonPhrase}. Contenido: {errorContent}");
-        //                }
-        //            }
-        //            catch (HttpRequestException)
-        //            {
-        //                // Re-lanzar excepciones HTTP específicas
-        //                throw;
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                throw new Exception($"Error al procesar item '{item}': {ex.Message}", ex);
-        //            }
-        //        }
-
-        //        return results;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new Exception($"Error al enviar datos a la API: {ex.Message}", ex);
-        //    }
-        //}
-
-        public static async Task putSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
-        {
-            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
-            string username = "ADMIN"; // Usuario proporcionado
-            string password = "Totvs2024##"; // Contraseña proporcionada
-
-            using (HttpClient client = new HttpClient())
-            {
-                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
+//                        Console.WriteLine($"Respuesta para producto {codigo}: {responseData}, {statusCode}");
+//                    }
+//                    catch (Exception ex)
+//                    {
+//                        Console.WriteLine($"Error al enviar producto {codigo}: {ex.Message}");
+//                    }
+//                    finally
+//                    {
+//                        // Se ejecutará siempre, tanto si hay error como si no
+//                        //ActualizarBase(statusCode, responseData, codigo);
+//                    }
+//                }
+//                catch (JsonException ex)
+//                {
+//                    Console.WriteLine($"Error al parsear JSON: {ex.Message}");
+//                    Console.WriteLine($"JSON recibido: {jsonString}");
+//                }
+//                catch (Exception ex)
+//                {
+//                    Console.WriteLine($"Error general: {ex.Message}");
+//                }
+//            }
+//        }
 
 
-                foreach (var parent in estructuras)
-                {
-                    var jsonBody = new
-                    {
-                        producto = parent.Key,
-                        qtdBase = "1",
-                        estructura = parent.Value
-                    };
 
-                    string jsonData = JsonConvert.SerializeObject(jsonBody, Formatting.Indented);
-                    JObject obj = JObject.Parse(jsonData);
+//        public static async Task putSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
+//{
+//    // PUT directo (sin POST previo). Se mantiene por compatibilidad, pero lo recomendado es usar postSG1 (upsert).
+//    string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
+//    string username = "ADMIN";
+//    string password = "Totvs2024##";
 
-                    // Obtener directamente el valor del campo "producto"
-                    string codigo = obj["producto"]?.ToString();
+//    using (HttpClient client = new HttpClient())
+//    {
+//        var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
+//        client.DefaultRequestHeaders.Authorization =
+//            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
 
-                    // Asegurarse de que el código no sea nulo
-                    if (string.IsNullOrEmpty(codigo))
-                    {
-                        // Manejar el caso cuando no se encuentra el código del producto
-                        Console.WriteLine("Error: No se pudo obtener el código del producto");
-                        continue;
-                    }
+//        foreach (var parent in estructuras)
+//        {
+//            var jsonBody = new
+//            {
+//                produto = parent.Key,
+//                qtdBase = "1",
+//                estrutura = parent.Value
+//            };
 
-                    // Ahora puedes usar el código del producto
-                    Console.WriteLine($"Código del producto: {codigo}");
+//            string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
 
-                    // Continuar con el resto del procesamiento...
+//            Console.WriteLine("JSON generado:");
+//            Console.WriteLine(jsonData);
 
+//            try
+//            {
+//                var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+//                HttpResponseMessage response = await client.PutAsync(url, content);
 
-                    // Imprimir el JSON generado
-                    Console.WriteLine("JSON generado:");
-                    Console.WriteLine(jsonData);
-                    Console.WriteLine(codigo);
+//                int statusCode = (int)response.StatusCode;
+//                string responseData = await response.Content.ReadAsStringAsync();
 
-
-                    int statusCode = 0;
-                    string responseData = string.Empty;
-
-                    try
-                    {
-                        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                        HttpResponseMessage response = await client.PutAsync(url, content);
-
-                        // Leer el código de estado
-                        statusCode = (int)response.StatusCode;
-
-                        // Leer la respuesta como string
-                        responseData = await response.Content.ReadAsStringAsync();
-
-                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-                        response.EnsureSuccessStatusCode();
-
-                        Console.WriteLine($"Respuesta para producto {parent.Key}: {responseData}, {statusCode}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        // Se ejecutará siempre, tanto si hay error como si no
-                        //ActualizarBase(statusCode, responseData, codigo);
-                    }
-                }
-            }
-        }
+//                if (statusCode >= 200 && statusCode <= 299)
+//                {
+//                    Console.WriteLine($"PUT TCEstructura -> {statusCode}");
+//                    Console.WriteLine(responseData);
+//                }
+//                else
+//                {
+//                    Console.WriteLine($"PUT falló: {statusCode}");
+//                    Console.WriteLine(responseData);
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
+//            }
+//        }
+//    }
+//}
 
         public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1()
         {
-  
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = @"WITH CTE_Hierarchy AS(
                             SELECT DISTINCT
@@ -656,8 +587,8 @@ namespace WEB_SERVICE_RICHIGER
 
         public static void poblarBaseSG1(string Nombre_Padre, string Codigo_Padre, string Nombre_Hijo, string Codigo_Hijo, string CantidadHijo)
         {
-            
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = "INSERT INTO SG1 VALUES (@Nombre_Padre, @Codigo_Padre, @Nombre_Hijo, @Codigo_Hijo, @CantidadHijo, NULL, NULL)";
             try
@@ -686,8 +617,8 @@ namespace WEB_SERVICE_RICHIGER
 
         public static void ActualizarBase(int estado, string mensaje, string codigo)
         {
-            
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = @"UPDATE SG1
                           SET estado = @estado, mensaje = @mensaje

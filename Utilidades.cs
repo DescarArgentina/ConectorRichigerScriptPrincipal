@@ -11,7 +11,7 @@ namespace WEB_SERVICE_RICHIGER
         public static void EscribirEnLog(string mensaje)
         {
             // Lógica para escribir en el log
-            string rutaLog = "H:\\Richiger\\log.txt";
+            string rutaLog = "C:\\Richiger\\log.txt";
             //string rutaLog = @"C:\Crucianelli\log.txt";
             File.AppendAllText(rutaLog, $"{DateTime.Now} - {mensaje}{Environment.NewLine}");
         }
