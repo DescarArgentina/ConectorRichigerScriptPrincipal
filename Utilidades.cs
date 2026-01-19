@@ -8,12 +8,20 @@ namespace WEB_SERVICE_RICHIGER
 {
     public static class Utilidades
     {
+        public static string LogFolder { get; set; } = @"C:\Richiger";
+        public static string LogFileName { get; set; } = "log.txt";
+
+        public static string LogPath => Path.Combine(LogFolder, LogFileName);
+
         public static void EscribirEnLog(string mensaje)
         {
-            // Lógica para escribir en el log
-            string rutaLog = "C:\\Richiger\\log.txt";
-            //string rutaLog = @"C:\Crucianelli\log.txt";
-            File.AppendAllText(rutaLog, $"{DateTime.Now} - {mensaje}{Environment.NewLine}");
+            // Asegurarse de que el directorio exista
+            if (!Directory.Exists(LogFolder))
+            {
+                Directory.CreateDirectory(LogFolder);
+            }
+
+            File.AppendAllText(LogPath, $"{DateTime.Now} - {mensaje}{Environment.NewLine}");
         }
     }
 }

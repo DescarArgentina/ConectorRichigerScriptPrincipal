@@ -14,7 +14,7 @@ namespace WEB_SERVICE_RICHIGER
     {
         public static async Task postSB1(string jsonData)
         {
-            
+
             string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCProductos/Incluir/";
             string username = "ADMIN"; // Usuario proporcionado
             string password = "Totvs2024##"; // Contraseña proporcionada
@@ -65,7 +65,7 @@ namespace WEB_SERVICE_RICHIGER
                     }
 
                     // Mostrar el código de estado y la respuesta en consola
- 
+
                     Console.WriteLine("Respuesta del servicio: " + statusCode);
                     Console.WriteLine(responseData);
                     //poblarBase(codigo, descripcion,"PA","01","UN", revision, statusCode,responseData);
@@ -139,38 +139,42 @@ namespace WEB_SERVICE_RICHIGER
             string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
             string query = @"SELECT DISTINCT
-                Product.id_Table,
-               	Product.productId AS codigo,
-                LEFT(pr.name,60) as Descripcion,
-               	'PA' as tipo,
-               	'10' as deposito,
-               	MAX(CASE
-				WHEN uud.title = 'Ric4_Unidad' THEN uud.value
-				WHEN uud.title = 'Ric4_Kilogramos' THEN uud.value
-				WHEN uud.title = 'Ric4_Litros' THEN uud.value
-				WHEN uud.title = 'Ric4_Metros' THEN uud.value
-				WHEN uud.title = 'Ric4_Unidad' THEN uud.value
-				ELSE 'UN' END) AS 'unMedida',
-				pr.revision AS 'Revision',
-				CASE WHEN pr.name LIKE '%CONJ.CUBIERTAS%' OR pr.name LIKE '%GPS%' THEN
-				1 ELSE 0 END AS Fantasma
-            FROM
-                Occurrence
-            JOIN
-                ProductRevision pr ON Occurrence.instancedRef = pr.id_Table 
-				--AND pr.idXml = Occurrence.idXml
-            JOIN
-                Product ON pr.masterRef = Product.id_Table 
-				--AND Product.idXml = pr.idXml
-            LEFT JOIN
-                Form f ON Product.ProductId = (CASE
-                    WHEN CHARINDEX('/', F.name) > 0 THEN LEFT(F.name, CHARINDEX('/', F.name) -1)
-                    ELSE F.name END)
-            LEFT JOIN UserValue_UserData uud ON
-			f.id_Table + 9 = uud.id_Father
-			--AND Occurrence.idXml = uud.idXml
-            GROUP BY
-                Product.id_Table,Product.productId, pr.name, uud.title, Occurrence.parentRef, pr.revision";
+    Product.id_Table,
+    CASE 
+      WHEN Product.productId LIKE 'M-%' 
+        THEN SUBSTRING(Product.productId, 3, LEN(Product.productId))
+      ELSE Product.productId
+    END AS codigo,
+    LEFT(pr.name,60) as Descripcion,
+    'PA' as tipo,
+    '10' as deposito,
+    MAX(CASE
+        WHEN uud.title = 'Ric4_Unidad' THEN uud.value
+        WHEN uud.title = 'Ric4_Kilogramos' THEN uud.value
+        WHEN uud.title = 'Ric4_Litros' THEN uud.value
+        WHEN uud.title = 'Ric4_Metros' THEN uud.value
+        ELSE 'UN' 
+    END) AS unMedida,
+    pr.revision AS Revision,
+    CASE 
+      WHEN pr.name LIKE '%CONJ.CUBIERTAS%' OR pr.name LIKE '%GPS%' THEN 1 
+      ELSE 0 
+    END AS Fantasma
+FROM Occurrence
+JOIN ProductRevision pr ON Occurrence.instancedRef = pr.id_Table
+JOIN Product ON pr.masterRef = Product.id_Table
+LEFT JOIN Form f ON Product.ProductId = (CASE
+    WHEN CHARINDEX('/', F.name) > 0 THEN LEFT(F.name, CHARINDEX('/', F.name) -1)
+    ELSE F.name END)
+LEFT JOIN UserValue_UserData uud ON f.id_Table + 9 = uud.id_Father
+GROUP BY
+    Product.id_Table,
+    Product.productId,
+    pr.name,
+    uud.title,
+    Occurrence.parentRef,
+    pr.revision;
+";
             List<string> jsonProductos = new List<string>();
 
             try
@@ -250,7 +254,7 @@ namespace WEB_SERVICE_RICHIGER
                         command.Parameters.AddWithValue("@mensaje", mensaje);
                         command.ExecuteNonQuery();
                     }
-                        
+
                 }
             }
             catch (Exception ex)

@@ -32,287 +32,286 @@ namespace WEB_SERVICE_RICHIGER
             _httpClient = new HttpClient();
         }
         public static async Task postSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
-{
-    // Upsert: intenta Incluir (POST) y si el ERP devuelve 409 (ya existe), reintenta con Modificar (PUT).
-    string urlPost = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-    string urlPut  = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
-    string username = "ADMIN";
-    string password = "Totvs2024##";
-
-    using (HttpClient client = new HttpClient())
-    {
-        var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-        client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-
-        foreach (var parent in estructuras)
         {
-            var jsonBody = new
+            // Upsert: intenta Incluir (POST) y si el ERP devuelve 409 (ya existe), reintenta con Modificar (PUT).
+            string urlPost = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
+            string urlPut = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
+            string username = "ADMIN";
+            string password = "Totvs2024##";
+
+            using (HttpClient client = new HttpClient())
             {
-                producto = parent.Key,
-                qtdBase = "1",
-                estructura = parent.Value
-            };
+                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
 
-            string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
-
-            Console.WriteLine("JSON generado:");
-            Console.WriteLine(jsonData);
-
-            // 1) POST /Incluir
-            int statusCodePost = 0;
-            string responsePost = string.Empty;
-
-            try
-            {
-                var contentPost = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                HttpResponseMessage respPost = await client.PostAsync(urlPost, contentPost);
-
-                statusCodePost = (int)respPost.StatusCode;
-                responsePost = await respPost.Content.ReadAsStringAsync();
-
-                if (statusCodePost >= 200 && statusCodePost <= 299)
+                foreach (var parent in estructuras)
                 {
-                    Console.WriteLine($"POST TCEstructura -> {statusCodePost}");
-                    Console.WriteLine(responsePost);
-                    continue;
-                }
-
-                // 409 = ya existe en ERP: reintentar con PUT /Modificar
-                if (statusCodePost == 409)
-                {
-                    Console.WriteLine($"Ya existe (409). Intentando PUT /Modificar...");
-                    var contentPut = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                    HttpResponseMessage respPut = await client.PutAsync(urlPut, contentPut);
-
-                    int statusCodePut = (int)respPut.StatusCode;
-                    string responsePut = await respPut.Content.ReadAsStringAsync();
-
-                    if (statusCodePut >= 200 && statusCodePut <= 299)
+                    var jsonBody = new
                     {
-                        Console.WriteLine($"PUT TCEstructura -> {statusCodePut}");
-                        Console.WriteLine(responsePut);
-                    }
-                    else
+                        producto = parent.Key,
+                        qtdBase = "1",
+                        estructura = parent.Value
+                    };
+
+                    string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
+
+                    Console.WriteLine("JSON generado:");
+                    Console.WriteLine(jsonData);
+
+                    // 1) POST /Incluir
+                    int statusCodePost = 0;
+                    string responsePost = string.Empty;
+
+                    try
                     {
-                        Console.WriteLine($"PUT falló: {statusCodePut}");
-                        Console.WriteLine(responsePut);
+                        var contentPost = new StringContent(jsonData, Encoding.UTF8, "application/json");
+                        HttpResponseMessage respPost = await client.PostAsync(urlPost, contentPost);
+
+                        statusCodePost = (int)respPost.StatusCode;
+                        responsePost = await respPost.Content.ReadAsStringAsync();
+
+                        if (statusCodePost >= 200 && statusCodePost <= 299)
+                        {
+                            Console.WriteLine($"POST TCEstructura -> {statusCodePost}");
+                            Console.WriteLine(responsePost);
+                            continue;
+                        }
+
+                        // 409 = ya existe en ERP: reintentar con PUT /Modificar
+                        if (statusCodePost == 409)
+                        {
+                            Console.WriteLine($"Ya existe (409). Intentando PUT /Modificar...");
+                            var contentPut = new StringContent(jsonData, Encoding.UTF8, "application/json");
+                            HttpResponseMessage respPut = await client.PutAsync(urlPut, contentPut);
+
+                            int statusCodePut = (int)respPut.StatusCode;
+                            string responsePut = await respPut.Content.ReadAsStringAsync();
+
+                            if (statusCodePut >= 200 && statusCodePut <= 299)
+                            {
+                                Console.WriteLine($"PUT TCEstructura -> {statusCodePut}");
+                                Console.WriteLine(responsePut);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"PUT falló: {statusCodePut}");
+                                Console.WriteLine(responsePut);
+                            }
+
+                            continue;
+                        }
+
+                        // Otros códigos: loguear el cuerpo de respuesta para diagnóstico
+                        Console.WriteLine($"POST falló: {statusCodePost}");
+                        Console.WriteLine(responsePost);
                     }
-
-                    continue;
-                }
-
-                // Otros códigos: loguear el cuerpo de respuesta para diagnóstico
-                Console.WriteLine($"POST falló: {statusCodePost}");
-                Console.WriteLine(responsePost);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al enviar estructura de producto {parent.Key}: {ex.Message}");
-                if (!string.IsNullOrWhiteSpace(responsePost))
-                {
-                    Console.WriteLine("Respuesta del servicio:");
-                    Console.WriteLine(responsePost);
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error al enviar estructura de producto {parent.Key}: {ex.Message}");
+                        if (!string.IsNullOrWhiteSpace(responsePost))
+                        {
+                            Console.WriteLine("Respuesta del servicio:");
+                            Console.WriteLine(responsePost);
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-//        public async Task postSG1(string jsonString)
-//        {
-//            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-//            string username = "ADMIN"; // Usuario proporcionado
-//            string password = "Totvs2024##"; // Contraseña proporcionada
+        //        public async Task postSG1(string jsonString)
+        //        {
+        //            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
+        //            string username = "ADMIN"; // Usuario proporcionado
+        //            string password = "Totvs2024##"; // Contraseña proporcionada
 
-//            using (HttpClient client = new HttpClient())
-//            {
-//                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-//                client.DefaultRequestHeaders.Authorization =
-//                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
+        //            using (HttpClient client = new HttpClient())
+        //            {
+        //                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
+        //                client.DefaultRequestHeaders.Authorization =
+        //                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
 
-//                try
-//                {
-//                    // Validar que el JSON sea válido
-//                    JObject obj = JObject.Parse(jsonString);
+        //                try
+        //                {
+        //                    // Validar que el JSON sea válido
+        //                    JObject obj = JObject.Parse(jsonString);
 
-//                    // Obtener directamente el valor del campo "producto"
-//                    string codigo = obj["producto"]?.ToString();
+        //                    // Obtener directamente el valor del campo "producto"
+        //                    string codigo = obj["producto"]?.ToString();
 
-//                    // Asegurarse de que el código no sea nulo
-//                    if (string.IsNullOrEmpty(codigo))
-//                    {
-//                        Console.WriteLine("Error: No se pudo obtener el código del producto del JSON");
-//                        Console.WriteLine($"JSON recibido: {jsonString}");
-//                        return;
-//                    }
+        //                    // Asegurarse de que el código no sea nulo
+        //                    if (string.IsNullOrEmpty(codigo))
+        //                    {
+        //                        Console.WriteLine("Error: No se pudo obtener el código del producto del JSON");
+        //                        Console.WriteLine($"JSON recibido: {jsonString}");
+        //                        return;
+        //                    }
 
-//                    // Ahora puedes usar el código del producto
-//                    Console.WriteLine($"Código del producto: {codigo}");
+        //                    // Ahora puedes usar el código del producto
+        //                    Console.WriteLine($"Código del producto: {codigo}");
 
-//                    // Imprimir el JSON que se enviará (ya viene formateado)
-//                    Console.WriteLine("JSON a enviar:");
-//                    Console.WriteLine(jsonString);
+        //                    // Imprimir el JSON que se enviará (ya viene formateado)
+        //                    Console.WriteLine("JSON a enviar:");
+        //                    Console.WriteLine(jsonString);
 
-//                    int statusCode = 0;
-//                    string responseData = string.Empty;
+        //                    int statusCode = 0;
+        //                    string responseData = string.Empty;
 
-//                    try
-//                    {
-//                        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-//                        HttpResponseMessage response = await client.PostAsync(url, content);
+        //                    try
+        //                    {
+        //                        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+        //                        HttpResponseMessage response = await client.PostAsync(url, content);
 
-//                        // Leer el código de estado
-//                        statusCode = (int)response.StatusCode;
+        //                        // Leer el código de estado
+        //                        statusCode = (int)response.StatusCode;
 
-//                        // Leer la respuesta como string
-//                        responseData = await response.Content.ReadAsStringAsync();             
+        //                        // Leer la respuesta como string
+        //                        responseData = await response.Content.ReadAsStringAsync();             
 
-//                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-//                        response.EnsureSuccessStatusCode();
+        //                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
+        //                        response.EnsureSuccessStatusCode();
 
-//                        Console.WriteLine($"Respuesta para producto {codigo}: {responseData}, {statusCode}");
-//                    }
-//                    catch (Exception ex)
-//                    {
-//                        Console.WriteLine($"Error al enviar producto {codigo}: {ex.Message}");
-//                    }
-//                    finally
-//                    {
-//                        // Se ejecutará siempre, tanto si hay error como si no
-//                        //ActualizarBase(statusCode, responseData, codigo);
-//                    }
-//                }
-//                catch (JsonException ex)
-//                {
-//                    Console.WriteLine($"Error al parsear JSON: {ex.Message}");
-//                    Console.WriteLine($"JSON recibido: {jsonString}");
-//                }
-//                catch (Exception ex)
-//                {
-//                    Console.WriteLine($"Error general: {ex.Message}");
-//                }
-//            }
-//        }
+        //                        Console.WriteLine($"Respuesta para producto {codigo}: {responseData}, {statusCode}");
+        //                    }
+        //                    catch (Exception ex)
+        //                    {
+        //                        Console.WriteLine($"Error al enviar producto {codigo}: {ex.Message}");
+        //                    }
+        //                    finally
+        //                    {
+        //                        // Se ejecutará siempre, tanto si hay error como si no
+        //                        //ActualizarBase(statusCode, responseData, codigo);
+        //                    }
+        //                }
+        //                catch (JsonException ex)
+        //                {
+        //                    Console.WriteLine($"Error al parsear JSON: {ex.Message}");
+        //                    Console.WriteLine($"JSON recibido: {jsonString}");
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    Console.WriteLine($"Error general: {ex.Message}");
+        //                }
+        //            }
+        //        }
 
 
 
-//        public static async Task putSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
-//{
-//    // PUT directo (sin POST previo). Se mantiene por compatibilidad, pero lo recomendado es usar postSG1 (upsert).
-//    string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
-//    string username = "ADMIN";
-//    string password = "Totvs2024##";
+        //        public static async Task putSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
+        //{
+        //    // PUT directo (sin POST previo). Se mantiene por compatibilidad, pero lo recomendado es usar postSG1 (upsert).
+        //    string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
+        //    string username = "ADMIN";
+        //    string password = "Totvs2024##";
 
-//    using (HttpClient client = new HttpClient())
-//    {
-//        var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-//        client.DefaultRequestHeaders.Authorization =
-//            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
+        //    using (HttpClient client = new HttpClient())
+        //    {
+        //        var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
+        //        client.DefaultRequestHeaders.Authorization =
+        //            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
 
-//        foreach (var parent in estructuras)
-//        {
-//            var jsonBody = new
-//            {
-//                produto = parent.Key,
-//                qtdBase = "1",
-//                estrutura = parent.Value
-//            };
+        //        foreach (var parent in estructuras)
+        //        {
+        //            var jsonBody = new
+        //            {
+        //                produto = parent.Key,
+        //                qtdBase = "1",
+        //                estrutura = parent.Value
+        //            };
 
-//            string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
+        //            string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
 
-//            Console.WriteLine("JSON generado:");
-//            Console.WriteLine(jsonData);
+        //            Console.WriteLine("JSON generado:");
+        //            Console.WriteLine(jsonData);
 
-//            try
-//            {
-//                var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-//                HttpResponseMessage response = await client.PutAsync(url, content);
+        //            try
+        //            {
+        //                var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+        //                HttpResponseMessage response = await client.PutAsync(url, content);
 
-//                int statusCode = (int)response.StatusCode;
-//                string responseData = await response.Content.ReadAsStringAsync();
+        //                int statusCode = (int)response.StatusCode;
+        //                string responseData = await response.Content.ReadAsStringAsync();
 
-//                if (statusCode >= 200 && statusCode <= 299)
-//                {
-//                    Console.WriteLine($"PUT TCEstructura -> {statusCode}");
-//                    Console.WriteLine(responseData);
-//                }
-//                else
-//                {
-//                    Console.WriteLine($"PUT falló: {statusCode}");
-//                    Console.WriteLine(responseData);
-//                }
-//            }
-//            catch (Exception ex)
-//            {
-//                Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
-//            }
-//        }
-//    }
-//}
+        //                if (statusCode >= 200 && statusCode <= 299)
+        //                {
+        //                    Console.WriteLine($"PUT TCEstructura -> {statusCode}");
+        //                    Console.WriteLine(responseData);
+        //                }
+        //                else
+        //                {
+        //                    Console.WriteLine($"PUT falló: {statusCode}");
+        //                    Console.WriteLine(responseData);
+        //                }
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
+        //            }
+        //        }
+        //    }
+        //}
 
         public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1()
         {
 
             string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
-            string query = @"WITH CTE_Hierarchy AS(
-                            SELECT DISTINCT
-
-                                Occurrence.id_table,
-                                ProductRevision.name,
-                                Product.productId AS codigo,
-                                SUM(TRY_CAST(CASE
-
-                                    WHEN UserValue_UserData.value = '' THEN '1'
-
-                                    ELSE UserValue_UserData.value
-
-                                END AS FLOAT)) AS Cantidad,
-                                CAST(Occurrence.parentRef AS INT) AS parentRef,
-                                uud2.value AS Variante
-
-                            FROM
-
-                                Occurrence
-
-                            LEFT JOIN ProductRevision ON Occurrence.instancedRef = ProductRevision.id_Table
-
-                            LEFT JOIN Product ON ProductRevision.masterRef = Product.id_Table
-                  
-                            LEFT JOIN UserValue_UserData ON Occurrence.id_Table + 2 = UserValue_UserData.id_Father AND UserValue_UserData.title = 'Quantity'
-
-                            LEFT JOIN UserValue_UserData uud2 ON Occurrence.id_Table - 1 = uud2.id_Father AND uud2.title = 'bl_formula'
-
-                            GROUP BY ProductRevision.name, Product.productId, Occurrence.parentRef, Occurrence.id_table, ProductRevision.id_Table, UserValue_UserData.value,
-                            uud2.value
-                        )
-            SELECT DISTINCT
-                --Parent.id_table AS ParentId,
-                --CASE WHEN Parent.name = 'TX-MEGA GEN3 12-70 150% MBOM' THEN 'TX-MEGA GEN3 12-70 FS MECANICA' ELSE Parent.name END AS ParentName,
-            	Parent.name AS ParentName,
-            	--Parent.codigo AS ParentCodigo,
-                --CASE WHEN Parent.codigo = 'MEGA1270150' THEN '1000004' ELSE Parent.codigo END AS ParentCodigo,
-            	Parent.codigo AS ParentCodigo,
-                Child.name AS ChildName,
-                Child.codigo AS ChildCodigo,
-                SUM(Child.Cantidad) AS CantidadHijo,
-                Child.Variante
-                --SUM(Parent.Cantidad) AS CantidadPadre
-            FROM
-                CTE_Hierarchy Parent
-            INNER JOIN
-                CTE_Hierarchy Child ON Parent.id_table = Child.parentRef
-            WHERE 
-            Parent.codigo <> Child.codigo
-            GROUP BY
-                Parent.id_table,
-                Parent.name,
-                Parent.codigo,
-                Child.name,
-                Child.codigo,
-            	Child.Variante
-            --ORDER BY ParentId";
+            string query = @"WITH CTE_Hierarchy AS (
+    SELECT DISTINCT
+        Occurrence.id_table,
+        ProductRevision.name,
+        CASE 
+          WHEN Product.productId LIKE 'M-%' 
+            THEN SUBSTRING(Product.productId, 3, LEN(Product.productId))
+          ELSE Product.productId
+        END AS codigo,
+        SUM(TRY_CAST(
+            CASE
+                WHEN UserValue_UserData.value = '' THEN '1'
+                ELSE UserValue_UserData.value
+            END AS FLOAT
+        )) AS Cantidad,
+        CAST(Occurrence.parentRef AS INT) AS parentRef,
+        uud2.value AS Variante
+    FROM Occurrence
+    LEFT JOIN ProductRevision 
+        ON Occurrence.instancedRef = ProductRevision.id_Table
+    LEFT JOIN Product 
+        ON ProductRevision.masterRef = Product.id_Table
+    LEFT JOIN UserValue_UserData 
+        ON Occurrence.id_Table + 2 = UserValue_UserData.id_Father
+       AND UserValue_UserData.title = 'Quantity'
+    LEFT JOIN UserValue_UserData uud2 
+        ON Occurrence.id_Table - 1 = uud2.id_Father
+       AND uud2.title = 'bl_formula'
+    GROUP BY
+        ProductRevision.name,
+        Product.productId,
+        Occurrence.parentRef,
+        Occurrence.id_table,
+        ProductRevision.id_Table,
+        UserValue_UserData.value,
+        uud2.value
+)
+SELECT DISTINCT
+    Parent.name AS ParentName,
+    Parent.codigo AS ParentCodigo,
+    Child.name AS ChildName,
+    Child.codigo AS ChildCodigo,
+    SUM(Child.Cantidad) AS CantidadHijo,
+    Child.Variante
+FROM CTE_Hierarchy Parent
+INNER JOIN CTE_Hierarchy Child
+    ON Parent.id_table = Child.parentRef
+WHERE Parent.codigo <> Child.codigo
+GROUP BY
+    Parent.id_table,
+    Parent.name,
+    Parent.codigo,
+    Child.name,
+    Child.codigo,
+    Child.Variante;
+";
 
             Dictionary<string, List<List<Dictionary<string, string>>>> estructuras = new Dictionary<string, List<List<Dictionary<string, string>>>>();
             try
@@ -357,7 +356,7 @@ namespace WEB_SERVICE_RICHIGER
                                     ChildName = childName,
                                     ChildCodigo = childCodigo,
                                     CantidadHijo = cantidadHijo
-                                    
+
                                     //Variante = reader.IsDBNull(reader.GetOrdinal("Variante")) ?
                                     //string.Empty : reader["Variante"].ToString()
                                 };
@@ -519,7 +518,7 @@ namespace WEB_SERVICE_RICHIGER
                                     if (grupoOpc != null)
                                     {
                                         // Add grupo_opc
-                                       
+
 
                                         // Initialize counter for this configuration if it doesn't exist
                                         if (prefijoOpcional != null && !configCounter.ContainsKey(prefijoOpcional))
@@ -546,12 +545,12 @@ namespace WEB_SERVICE_RICHIGER
 
                                     }
                                     else // Normal case with letter (A, B, C, etc.)
-                                        {
-                                            //valorOpcional = $"{prefijoOpcional ?? "A"}";
-                                        }
+                                    {
+                                        //valorOpcional = $"{prefijoOpcional ?? "A"}";
+                                    }
 
-                                        // Add opcional field
-                                       
+                                    // Add opcional field
+
                                     estructuras[parentCodigo].Add(childStructure);
                                 }
                             }

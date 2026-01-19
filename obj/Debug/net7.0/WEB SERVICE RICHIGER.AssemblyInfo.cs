@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WEB SERVICE RICHIGER")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+143a4673aa66609604d585a14204faca11f68953")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3a6fa70246260b77b75e237e7ba9ab645f9018a4")]
 [assembly: System.Reflection.AssemblyProductAttribute("WEB SERVICE RICHIGER")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WEB SERVICE RICHIGER")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -93,13 +93,11 @@ namespace WEB_SERVICE_RICHIGER
 
         public static List<string> jsonSG2_SH3()
         {
-
             //string connectionString = "Server=DEPLM-07-PC\\SQLEXPRESS;Database=RichigerBOP;Trusted_Connection=True;";
             string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
 
 
-
-            string query = @"WITH ProcessData AS (
+            string queryMain = @"WITH ProcessData AS (
     SELECT
         CAST(po.id_Table AS BIGINT)                          AS idTable,
         COALESCE(p.catalogueId, o.catalogueId)               AS catalogueId,
@@ -107,7 +105,6 @@ namespace WEB_SERVICE_RICHIGER
         CAST(po.parentRef AS BIGINT)                         AS ParentRef,
         COALESCE(p.subType, o.subType)                       AS subtype,
         po.idXml                                             AS idXml,
-        -- (si ya traés setup_value por otro lado, podés quitar estas 3 líneas)
         f_mast.name                                          AS masterFormName,
         uv_setup.value                                       AS setup_value
     FROM dbo.ProcessOccurrence po
@@ -119,8 +116,6 @@ namespace WEB_SERVICE_RICHIGER
            ON opr.id_Table = po.instancedRef AND po.idXml = opr.idXml
     LEFT JOIN dbo.Operation o
            ON o.id_Table = opr.masterRef AND opr.idXml = o.idXml
-
-    -- master form del PR por nombre: catalogueId + '/' + revision
     LEFT JOIN dbo.Form f_mast
            ON f_mast.name = p.catalogueId + '/' + pr.revision
           AND f_mast.idXml = po.idXml
@@ -140,15 +135,39 @@ RootProcessData AS (
       AND pd.ParentRef IS NULL
 ),
 
-RankedData AS (
+/* Unifica WorkAreas que pueden venir como Occurrence o WorkAreaOccurrence */
+WorkAreaOcc_All AS (
     SELECT
+        o.id_Table,
+        o.parentRef,
+        o.instancedRef,
+        o.subType,
+        o.idXml
+    FROM dbo.Occurrence o
+    WHERE o.subType = 'MEWorkArea'
+
+    UNION ALL
+
+    SELECT
+        w.id_Table,
+        w.parentRef,
+        w.instancedRef,
+        w.subType,
+        w.idXml
+    FROM dbo.WorkAreaOccurrence w
+    WHERE w.subType = 'MEWorkArea'
+),
+
+RankedData AS (
+    SELECT DISTINCT
         p.catalogueId  AS instancedProcess,
         wa.catalogueId AS instancedWorkArea,
         wa.name,
         po.idXml
     FROM dbo.ProcessOccurrence po
-    JOIN dbo.Occurrence AS occ
-      ON occ.parentRef = po.id_Table AND po.idXml = occ.idXml
+    JOIN WorkAreaOcc_All occ
+      ON occ.parentRef = po.id_Table
+     AND occ.idXml     = po.idXml
     JOIN dbo.ProcessRevision pr
       ON pr.id_Table = po.instancedRef AND po.idXml = pr.idXml
     JOIN dbo.Process p
@@ -161,27 +180,21 @@ RankedData AS (
       ON war.id_Table = occ.instancedRef AND occ.idXml = war.idXml
     JOIN dbo.WorkArea wa
       ON war.masterRef = wa.id_Table AND war.idXml = wa.idXml
-    WHERE occ.subType = 'MEWorkArea'
 ),
 
-/* ========= TimeAnalysis por ProcessOccurrence =========
-   - Split de po.associatedAttachmentRefs: '#id22 #id25' → (22,25)
-   - Join a AssociatedAttachment (id_Table)
-   - Ir al Form por attachmentRef ('#id26' → 26)
-   - Tomar UserValue 'allocated_time' por uv.id_Father = Form.id_Table + 1
-*/
 TA_ByPO AS (
     SELECT
         po.id_Table AS poId,
         po.idXml,
-        SUM( TRY_CONVERT(decimal(18,4),
-              REPLACE(NULLIF(LTRIM(RTRIM(uv.value)), ''), ',', '.')
+        SUM(
+            TRY_CONVERT(decimal(18,4),
+                REPLACE(NULLIF(LTRIM(RTRIM(uv.value)), ''), ',', '.')
             )
         ) AS ta_seconds
     FROM dbo.ProcessOccurrence po
     CROSS APPLY (
         SELECT TRY_CONVERT(int, REPLACE(value, '#id', '')) AS aaIdNum
-        FROM STRING_SPLIT( ISNULL(po.associatedAttachmentRefs, ''), ' ' )
+        FROM STRING_SPLIT(ISNULL(po.associatedAttachmentRefs, ''), ' ')
         WHERE value IS NOT NULL AND value <> ''
     ) s
     JOIN dbo.AssociatedAttachment aa
@@ -191,7 +204,7 @@ TA_ByPO AS (
     JOIN dbo.Form fta
       ON fta.id_Table = TRY_CONVERT(int, REPLACE(aa.attachmentRef, '#id', ''))
      AND fta.idXml    = aa.idXml
-     AND fta.name = 'TimeAnalysis'
+     AND fta.name     = 'TimeAnalysis'
     JOIN dbo.UserValue_UserData uv
       ON uv.id_Father = fta.id_Table + 1
      AND uv.idXml     = fta.idXml
@@ -200,47 +213,44 @@ TA_ByPO AS (
 )
 
 SELECT 
-    TOP 1 MEProcess.catalogueId AS Process_catalogueId,
+    TOP 1
+    MEProcess.catalogueId AS Process_catalogueId,
     MEProcess.name        AS Process_name,
 
     CASE 
-      WHEN ta.ta_seconds IS NOT NULL AND TRY_CAST(ta.ta_seconds AS FLOAT) > 0
-      THEN
-        CAST(
-            (CAST(ta.ta_seconds AS INT) / 3600)                        -- horas
-            +
-            (
-                ((CAST(ta.ta_seconds AS INT) % 3600) / 60)             -- minutos (0–59)
-                / 100.0                                                -- -> .MM
-            )
-            AS decimal(18,2)
-        )
-      ELSE 0.10
+      WHEN ta.ta_seconds IS NOT NULL AND TRY_CAST(ta.ta_seconds AS FLOAT) > 0 THEN 
+        CAST( 
+            (CAST(ta.ta_seconds AS INT) / 3600) 
+            + ( ((CAST(ta.ta_seconds AS INT) % 3600) / 60) / 100.0 ) 
+        AS decimal(18,2) ) 
+      ELSE 0.10 
     END AS tiempo,
 
-    -- Podés mantener estos para debug, no afectan el cálculo
     MEOP.catalogueId      AS Operation_catalogueId,
     MEOP.name             AS Operation_name,
 
     rd.name               AS Workarea_name,
     rd.instancedWorkArea  AS Workarea_code,
 
-    REPLACE(rpd.rootProcessId, 'P-','M-') AS codigo,
+    REPLACE(rpd.rootProcessId, 'P-','') AS codigo,
     rpd.rootProcessName    AS Descripcion,
-     CASE 
+
+    CASE 
       WHEN TRY_CAST(ta.ta_seconds AS FLOAT) >= 60 THEN '1'
       ELSE '60'
-     END                   AS lote,
-    'PA'                   AS tipo,
-    '10'                   AS deposito,
-    'UN'                   AS [Unidad de Medida],
+    END AS lote,
+
+    'PA' AS tipo,
+    '10' AS deposito,
+    'UN' AS [Unidad de Medida],
 
     MEProcess.idXml,
-    -- Sugerencia: normalizar acá para evitar NULL en el JSON
+
     COALESCE(
       TRY_CONVERT(decimal(18,2), REPLACE(NULLIF(MEProcess.setup_value,''), ',', '.')),
       0.00
     ) AS SetupTime
+
 FROM ProcessData AS MEProcess
 LEFT JOIN ProcessData AS MEOP
   ON MEProcess.idTable = MEOP.ParentRef
@@ -252,100 +262,123 @@ JOIN RankedData rd
  AND rd.idXml            = MEProcess.idXml
 JOIN RootProcessData rpd
   ON rpd.idXml = MEProcess.idXml
-
--- vincular el TA del propio ProcessOccurrence del MEProcess
 JOIN dbo.ProcessOccurrence po_me
   ON po_me.id_Table = MEProcess.idTable
  AND po_me.idXml    = MEProcess.idXml
 LEFT JOIN TA_ByPO ta
   ON ta.poId  = po_me.id_Table
- AND ta.idXml = po_me.idXml
+  AND ta.idXml = po_me.idXml
 
 WHERE MEProcess.subType = 'MEProcess'
 ORDER BY MEProcess.catalogueId;";
 
+            string queryFallback = @"WITH ProcessData AS ( SELECT CAST(po.id_Table AS BIGINT) AS idTable, COALESCE(p.catalogueId, o.catalogueId) AS catalogueId, COALESCE(p.name, o.name) AS name, CAST(po.parentRef AS BIGINT) AS ParentRef, COALESCE(p.subType, o.subType) AS subtype, po.idXml AS idXml, f_mast.name AS masterFormName, uv_setup.value AS setup_value FROM dbo.ProcessOccurrence po LEFT JOIN dbo.ProcessRevision pr ON po.instancedRef = pr.id_Table AND po.idXml = pr.idXml LEFT JOIN dbo.Process p ON p.id_Table = pr.masterRef AND pr.idXml = p.idXml LEFT JOIN dbo.OperationRevision opr ON opr.id_Table = po.instancedRef AND po.idXml = opr.idXml LEFT JOIN dbo.Operation o ON o.id_Table = opr.masterRef AND opr.idXml = o.idXml LEFT JOIN dbo.Form f_mast ON f_mast.name = p.catalogueId + '/' + pr.revision AND f_mast.idXml = po.idXml LEFT JOIN dbo.UserValue_UserData uv_setup ON uv_setup.id_Father = f_mast.id_Table + 1 AND uv_setup.idXml = f_mast.idXml AND uv_setup.title = 'ric4_Setup' ), RootProcessData AS ( SELECT pd.catalogueId AS rootProcessId, pd.name AS rootProcessName, pd.idXml FROM ProcessData pd WHERE pd.subType = 'MEProcess' AND pd.ParentRef IS NULL ), RankedData AS ( SELECT p.catalogueId AS instancedProcess, wa.catalogueId AS instancedWorkArea, wa.name, po.idXml FROM dbo.ProcessOccurrence po JOIN dbo.Occurrence AS occ ON occ.parentRef = po.id_Table AND po.idXml = occ.idXml JOIN dbo.ProcessRevision pr ON pr.id_Table = po.instancedRef AND po.idXml = pr.idXml JOIN dbo.Process p ON pr.masterRef = p.id_Table AND pr.idXml = p.idXml LEFT JOIN dbo.OperationRevision opr ON opr.id_Table = po.instancedRef AND po.idXml = opr.idXml LEFT JOIN dbo.Operation o ON o.id_Table = opr.masterRef AND opr.idXml = o.idXml JOIN dbo.WorkAreaRevision war ON war.id_Table = occ.instancedRef AND occ.idXml = war.idXml JOIN dbo.WorkArea wa ON war.masterRef = wa.id_Table AND war.idXml = wa.idXml WHERE occ.subType = 'MEWorkArea' ), TA_ByPO AS ( SELECT po.id_Table AS poId, po.idXml, SUM( TRY_CONVERT(decimal(18,4), REPLACE(NULLIF(LTRIM(RTRIM(uv.value)), ''), ',', '.') ) ) AS ta_seconds FROM dbo.ProcessOccurrence po CROSS APPLY ( SELECT TRY_CONVERT(int, REPLACE(value, '#id', '')) AS aaIdNum FROM STRING_SPLIT(ISNULL(po.associatedAttachmentRefs, ''), ' ') WHERE value IS NOT NULL AND value <> '' ) s JOIN dbo.AssociatedAttachment aa ON aa.id_Table = s.aaIdNum AND aa.idXml = po.idXml AND aa.role = 'METimeAnalysisRelation' JOIN dbo.Form fta ON fta.id_Table = TRY_CONVERT(int, REPLACE(aa.attachmentRef, '#id', '')) AND fta.idXml = aa.idXml AND fta.name = 'TimeAnalysis' JOIN dbo.UserValue_UserData uv ON uv.id_Father = fta.id_Table + 1 AND uv.idXml = fta.idXml AND uv.title = 'allocated_time' GROUP BY po.id_Table, po.idXml ) SELECT TOP 1 MEProcess.catalogueId AS Process_catalogueId, MEProcess.name AS Process_name, CASE WHEN ta.ta_seconds IS NOT NULL AND TRY_CAST(ta.ta_seconds AS FLOAT) > 0 THEN CAST( (CAST(ta.ta_seconds AS INT) / 3600) + ( ((CAST(ta.ta_seconds AS INT) % 3600) / 60) / 100.0 ) AS decimal(18,2) ) ELSE 0.10 END AS tiempo, MEOP.catalogueId AS Operation_catalogueId, MEOP.name AS Operation_name, rd.name AS Workarea_name, rd.instancedWorkArea AS Workarea_code, REPLACE(rpd.rootProcessId, 'P-','') AS codigo, rpd.rootProcessName AS Descripcion, CASE WHEN TRY_CAST(ta.ta_seconds AS FLOAT) >= 60 THEN '1' ELSE '60' END AS lote, 'PA' AS tipo, '10' AS deposito, 'UN' AS [Unidad de Medida], MEProcess.idXml, COALESCE( TRY_CONVERT(decimal(18,2), REPLACE(NULLIF(MEProcess.setup_value,''), ',', '.')), 0.00 ) AS SetupTime FROM ProcessData AS MEProcess LEFT JOIN ProcessData AS MEOP ON MEProcess.idTable = MEOP.ParentRef AND MEProcess.subType = 'MEProcess' AND MEOP.subtype = 'MEOP' AND MEProcess.idXml = MEOP.idXml JOIN RankedData rd ON rd.instancedProcess = MEProcess.catalogueId AND rd.idXml = MEProcess.idXml JOIN RootProcessData rpd ON rpd.idXml = MEProcess.idXml JOIN dbo.ProcessOccurrence po_me ON po_me.id_Table = MEProcess.idTable AND po_me.idXml = MEProcess.idXml LEFT JOIN TA_ByPO ta ON ta.poId = po_me.id_Table AND ta.idXml = po_me.idXml WHERE MEProcess.subType = 'MEProcess' ORDER BY MEProcess.catalogueId";
+
             List<string> jsonProductos = new List<string>();
+
             try
             {
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    SqlCommand command = null;
+                    SqlDataReader reader = null;
+
+                    try
                     {
-                        // Diccionario para agrupar por producto
-                        Dictionary<string, dynamic> productosDict = new Dictionary<string, dynamic>();
-                        int operacion = 0;
-
-                        while (reader.Read())
-                        {
-                            string producto = reader["codigo"]?.ToString();
-                            string codigo = "01"; // Se mantiene como constante por ahora
-
-                            string tiempo = reader["tiempo"]?.ToString().Replace(',', '.');
-                            if (reader["tiempo"] == DBNull.Value)
-                            {
-                                tiempo = "0.00"; // default
-                            }
-                            else
-                            {
-                                var dec = Convert.ToDecimal(reader["tiempo"], CultureInfo.InvariantCulture);
-                                tiempo = dec.ToString("0.00", CultureInfo.InvariantCulture); // <-- SIEMPRE 2 decimales
-                            }
-
-                            operacion = 10;
-                            string nombreProceso = reader["Process_name"]?.ToString();
-                            string loteStd = reader["lote"]?.ToString();
-                            string cenTrab = reader["Workarea_code"]?.ToString();
-                            string setup = reader["SetupTime"] == DBNull.Value ? "0.00" : Convert.ToDecimal(reader["SetupTime"], CultureInfo.InvariantCulture).ToString("0.00", CultureInfo.InvariantCulture);
-
-                            // Crear el procedimiento
-                            var procedimiento = new Procedimiento
-                            {
-                                detalle = new List<CampoValor>
-                                {
-                                    new CampoValor { campo = "operacion", valor = operacion.ToString() },
-                                    new CampoValor { campo = "recurso", valor = "" },
-                                    new CampoValor { campo = "tiempo", valor = tiempo },
-                                    new CampoValor { campo = "setup", valor = setup },
-                                    new CampoValor {campo = "descripcion", valor = nombreProceso },
-                                    new CampoValor {campo = "loteStd", valor = loteStd},
-                                    new CampoValor {campo = "centroTrab", valor = cenTrab }
-                                }
-                            };
-
-                            // Verificar si el producto ya está en el diccionario
-                            if (productosDict.ContainsKey(producto))
-                            {
-                                productosDict[producto].procedimiento.Add(procedimiento);
-                            }
-                            else
-                            {
-                                productosDict[producto] = new
-                                {
-                                    codigo = codigo,
-                                    producto = producto,
-                                    procedimiento = new List<Procedimiento> { procedimiento }
-                                };
-                            }
-                        }
-
-                        // Convertir cada elemento del diccionario en JSON
-                        foreach (var item in productosDict.Values)
-                        {
-                            string json = JsonConvert.SerializeObject(item, Formatting.Indented);
-                            jsonProductos.Add(json);
-                        }
+                        // Intentar query principal (con WorkAreaOcc_All)
+                        command = new SqlCommand(queryMain, connection);
+                        command.CommandTimeout = 300;
+                        reader = command.ExecuteReader();
                     }
+                    catch (SqlException ex) when (ex.Message.Contains("Invalid object name 'dbo.WorkAreaOccurrence'")
+                                               || ex.Message.Contains("Invalid object name 'WorkAreaOcc_All'"))
+                    {
+                        // Fallback
+                        if (reader != null && !reader.IsClosed) reader.Close();
+                        if (command != null) command.Dispose();
+
+                        Console.WriteLine($"[SG2-Fallback] Error de tabla WorkAreaOccurrence ({ex.Message}). Ejecutando query alternativo...");
+
+                        command = new SqlCommand(queryFallback, connection);
+                        command.CommandTimeout = 300;
+                        reader = command.ExecuteReader();
+                    }
+
+                    // Procesar el reader (sea el Main o el Fallback)
+                    using (reader)
+                    {
+                        jsonProductos = GenerarJsonDesdeReader(reader);
+                    }
+
+                    if (command != null) command.Dispose();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error: " + ex.Message);
+                Console.WriteLine("Error jsonSG2_SH3: " + ex.Message);
             }
 
             return jsonProductos;
+        }
+
+        private static List<string> GenerarJsonDesdeReader(SqlDataReader reader)
+        {
+            var result = new List<string>();
+            Dictionary<string, dynamic> productosDict = new Dictionary<string, dynamic>();
+
+            while (reader.Read())
+            {
+                string producto = reader["codigo"]?.ToString();
+                string codigo = "01";
+
+                decimal dTiempo = reader["tiempo"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["tiempo"], CultureInfo.InvariantCulture);
+                string tiempo = dTiempo == 0 ? "0.10" : dTiempo.ToString("0.00", CultureInfo.InvariantCulture);
+
+                int operacion = 10;
+                string nombreProceso = reader["Process_name"]?.ToString();
+                string loteStd = reader["lote"]?.ToString();
+                string cenTrab = reader["Workarea_code"]?.ToString();
+                decimal dSetup = reader["SetupTime"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["SetupTime"], CultureInfo.InvariantCulture);
+                string setup = dSetup == 0 ? "" : dSetup.ToString("0.00", CultureInfo.InvariantCulture);
+
+                var procedimiento = new Procedimiento
+                {
+                    detalle = new List<CampoValor>
+                    {
+                        new CampoValor { campo = "operacion", valor = operacion.ToString() },
+                        new CampoValor { campo = "recurso", valor = "" },
+                        new CampoValor { campo = "tiempo", valor = tiempo },
+                        new CampoValor { campo = "setup", valor = setup },
+                        new CampoValor {campo = "descripcion", valor = nombreProceso },
+                        new CampoValor {campo = "loteStd", valor = loteStd},
+                        new CampoValor {campo = "centroTrab", valor = cenTrab }
+                    }
+                };
+
+                if (productosDict.ContainsKey(producto))
+                {
+                    productosDict[producto].procedimiento.Add(procedimiento);
+                }
+                else
+                {
+                    productosDict[producto] = new
+                    {
+                        codigo = codigo,
+                        producto = producto,
+                        procedimiento = new List<Procedimiento> { procedimiento }
+                    };
+                }
+            }
+
+            foreach (var item in productosDict.Values)
+            {
+                string json = JsonConvert.SerializeObject(item, Formatting.Indented);
+                result.Add(json);
+            }
+
+            return result;
         }
 
         public static List<string> jsonSB1_BOP()
@@ -455,14 +488,16 @@ ORDER BY MEProcess.catalogueId;";
                     connection.Open();
 
                     using (SqlCommand command = new SqlCommand(query, connection))
-                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        while (reader.Read())
+                        command.CommandTimeout = 300;
+                        using (SqlDataReader reader = command.ExecuteReader())
                         {
-                            // Construir el JSON para cada producto
-                            var producto = new
+                            while (reader.Read())
                             {
-                                producto = new List<Dictionary<string, string>>
+                                // Construir el JSON para cada producto
+                                var producto = new
+                                {
+                                    producto = new List<Dictionary<string, string>>
                         {
                             new Dictionary<string, string> { { "campo", "codigo" }, { "valor", reader["codigo"].ToString() } },
                             new Dictionary<string, string> { { "campo", "descripcion" }, { "valor", reader["Descripcion"].ToString() } },
@@ -470,11 +505,12 @@ ORDER BY MEProcess.catalogueId;";
                             new Dictionary<string, string> { { "campo", "deposito" }, { "valor", reader["deposito"].ToString() } },
                             new Dictionary<string, string> { { "campo", "unMedida" }, { "valor", reader["Unidad de Medida"].ToString() } }
                         }
-                            };
+                                };
 
-                            string jsonData = JsonConvert.SerializeObject(producto, Formatting.Indented);
-                            Console.WriteLine(jsonData);
-                            jsonProductos.Add(jsonData); // Guardar el JSON en la lista
+                                string jsonData = JsonConvert.SerializeObject(producto, Formatting.Indented);
+                                Console.WriteLine(jsonData);
+                                jsonProductos.Add(jsonData); // Guardar el JSON en la lista
+                            }
                         }
                     }
                 }
