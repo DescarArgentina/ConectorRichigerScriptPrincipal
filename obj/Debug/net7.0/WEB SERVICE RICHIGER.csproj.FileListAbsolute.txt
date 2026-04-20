@@ -233,3 +233,62 @@ C:\Users\PC-01\Desktop\Proyectos\TestRichiger\ConectorRichiger\obj\Debug\net7.0\
 C:\Users\PC-01\Desktop\Proyectos\TestRichiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.pdb
 C:\Users\PC-01\Desktop\Proyectos\TestRichiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.genruntimeconfig.cache
 C:\Users\PC-01\Desktop\Proyectos\TestRichiger\ConectorRichiger\obj\Debug\net7.0\ref\WEB SERVICE RICHIGER.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\WEB SERVICE RICHIGER.exe
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\WEB SERVICE RICHIGER.deps.json
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\WEB SERVICE RICHIGER.runtimeconfig.json
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\WEB SERVICE RICHIGER.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\WEB SERVICE RICHIGER.pdb
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Azure.Core.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Azure.Identity.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Bcl.Cryptography.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Data.SqlClient.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Extensions.Caching.Abstractions.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Extensions.Caching.Memory.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Extensions.Options.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Extensions.Primitives.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Identity.Client.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.Identity.Client.Extensions.Msal.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Microsoft.SqlServer.Server.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Newtonsoft.Json.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\Newtonsoft.Json.Bson.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.ClientModel.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Configuration.ConfigurationManager.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Data.SqlClient.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Diagnostics.DiagnosticSource.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Formats.Asn1.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.IO.Pipelines.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Memory.Data.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Security.Cryptography.Pkcs.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Security.Cryptography.ProtectedData.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Text.Encodings.Web.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\System.Text.Json.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win-arm64\native\sni.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win-x64\native\sni.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win-x86\native\sni.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\unix\lib\net6.0\System.Data.SqlClient.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\bin\Debug\net7.0\runtimes\win\lib\net6.0\System.Data.SqlClient.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.csproj.AssemblyReference.cache
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.AssemblyInfoInputs.cache
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.AssemblyInfo.cs
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.csproj.CoreCompileInputs.cache
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.sourcelink.json
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERV.E2EB518B.Up2Date
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\refint\WEB SERVICE RICHIGER.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.pdb
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\WEB SERVICE RICHIGER.genruntimeconfig.cache
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\obj\Debug\net7.0\ref\WEB SERVICE RICHIGER.dll

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,383 +18,408 @@ namespace Web_Service
         // CONFIG
         // -----------------------------------------------------------------------------------------
         private const string ConnectionString =
-            "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            "Data Source=SRV-PLM-01;Initial Catalog=procesosProductivos;User Id=infodba;Password=infodba;TrustServerCertificate=True;";
 
-        private const string CarpetaMbom = @"C:\Richiger\mbomRichiger";
-        private const string CarpetaBop = @"C:\Richiger\BopRichiger";
+        private const string BaseProcesados = @"C:\DescarConector\02.1 PROCESADOS";
+        private static readonly string CarpetaOK = Path.Combine(BaseProcesados, "OK");
+        private static readonly string CarpetaERROR = Path.Combine(BaseProcesados, "ERROR");
 
-        private const string CarpetaProcesadosMbom = @"C:\Richiger\mbomRichiger_procesados";
-        private const string CarpetaProcesadosBop = @"C:\Richiger\BopRichiger_procesados";
-
-        // Variable estática para definir el destino en tiempo de ejecución
-        private static string CarpetaProcesados = @"C:\Richiger\bops_procesados";
+        private const string RutaGeneralLog = @"C:\DescarConector\ScriptPrincipal.log";
+        private const string NombreLogCarpeta = "procesamiento.log";
+        private const string NombreBopError = "BOP_Error";
 
         // -----------------------------------------------------------------------------------------
         // MAIN
         // -----------------------------------------------------------------------------------------
-
-
-        static async Task Main(string[] args)
+        // Argumentos esperados (enviados por el Monitor):
+        //   args[0] = mbomFolderPath       (C:\DescarConector\01.1 MBOMS\M-BOM_xxx)
+        //   args[1] = mbomProcesadaPath    (...\M-BOM_xxx\MBOM_Procesada)
+        //   args[2] = bopPendientesPath    (...\M-BOM_xxx\BOP_Pendientes)
+        //   args[3] = bopProcesadasPath    (...\M-BOM_xxx\BOP_Procesadas)
+        static async Task<int> Main(string[] args)
         {
+            if (args.Length < 4)
+            {
+                LogGeneral("ERROR: Se requieren 4 argumentos (mbomFolder, mbomProcesada, bopPendientes, bopProcesadas).");
+                Console.WriteLine("ERROR: Se requieren 4 argumentos.");
+                return 1;
+            }
+
+            string mbomFolderPath = args[0].TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string mbomProcesadaPath = args[1];
+            string bopPendientesPath = args[2];
+            string bopProcesadasPath = args[3];
+
+            string nombreCarpeta = Path.GetFileName(mbomFolderPath);
+            string rutaLogCarpeta = Path.Combine(mbomFolderPath, NombreLogCarpeta);
+
+            // Logs internos de SB1/SG1/SG2_SH3 van al mismo archivo de la carpeta
+            Utilidades.LogFolder = mbomFolderPath;
+            Utilidades.LogFileName = NombreLogCarpeta;
+
+            LogGeneral($"INICIO carpeta: {nombreCarpeta}");
+            LogCarpeta(rutaLogCarpeta, "========================================================");
+            LogCarpeta(rutaLogCarpeta, $"INICIO procesamiento: {nombreCarpeta}");
+            LogCarpeta(rutaLogCarpeta, "========================================================");
+
             try
             {
-                Console.WriteLine("========================================================");
-                Console.WriteLine("INICIO - Conector Richiger");
-                Console.WriteLine($"Base de datos: RichigerBOP");
-                Console.WriteLine($"Carpeta MBOM:  {CarpetaMbom}");
-                Console.WriteLine($"Carpeta BOP:   {CarpetaBop}");
-                Console.WriteLine($"Procesados:    {CarpetaProcesados}");
-                Console.WriteLine("========================================================");
-                Console.WriteLine();
-
-                // Asegurar existencia entradas
-                if (!Directory.Exists(CarpetaMbom)) Directory.CreateDirectory(CarpetaMbom);
-                if (!Directory.Exists(CarpetaBop)) Directory.CreateDirectory(CarpetaBop);
-
-                // (La carpeta de procesados se crea/asigna más adelante según selección)
-
-                // Crear carpeta de logs para esta ejecución
-                string logsRoot = @"C:\Richiger\logs";
-                // Formato solicitado: d-M-yy (ej: 7-1-26) + hora
-                string executionId = DateTime.Now.ToString("d-M-yy_HHmmss");
-                string executionLogDir = Path.Combine(logsRoot, executionId);
-                Directory.CreateDirectory(executionLogDir);
-
-                // Configurar Utilidades para el log general
-                Utilidades.LogFolder = executionLogDir;
-                Utilidades.LogFileName = "General_Ejecucion.log";
-
-                Console.WriteLine($"Carpeta de logs: {executionLogDir}");
-                Utilidades.EscribirEnLog("Inicio de ejecución - " + executionId);
-
-                string[] archivosMbom = Directory.GetFiles(CarpetaMbom, "*.xml");
-                string[] archivosBop = Directory.GetFiles(CarpetaBop, "*.xml");
-
-                string carpetaSeleccionada = "";
-                bool isBopMode = false;
-
-                if (archivosMbom.Length > 0)
+                if (!Directory.Exists(mbomFolderPath))
                 {
-                    carpetaSeleccionada = CarpetaMbom;
-                    CarpetaProcesados = CarpetaProcesadosMbom;
-                    isBopMode = false;
-                    Console.WriteLine("Detectados archivos en MBOM. Modo: MBOM.");
-
-                    if (archivosBop.Length > 0)
-                    {
-                        Console.WriteLine("NOTA: También existen archivos en BOP, pero se prioriza MBOM.");
-                    }
-                }
-                else if (archivosBop.Length > 0)
-                {
-                    carpetaSeleccionada = CarpetaBop;
-                    CarpetaProcesados = CarpetaProcesadosBop;
-                    isBopMode = true;
-                    Console.WriteLine("Detectados archivos en BOP (MBOM vacío). Modo: BOP (Se omite SG1).");
-                }
-                else
-                {
-                    Console.WriteLine($"No se encontraron XML en ninguna carpeta ({CarpetaMbom} / {CarpetaBop}).");
-                    Utilidades.EscribirEnLog("No se encontraron XML en las carpetas.");
-                    return;
+                    LogGeneral($"ERROR: No existe carpeta {mbomFolderPath}");
+                    return 1;
                 }
 
-                // Crear carpeta destino si no existe
-                if (!Directory.Exists(CarpetaProcesados)) Directory.CreateDirectory(CarpetaProcesados);
-                Console.WriteLine($"Carpeta Procesados: {CarpetaProcesados}");
-                Console.WriteLine();
+                // 1) Buscar MBOM raíz
+                var mbomFiles = Directory.GetFiles(mbomFolderPath, "*.xml", SearchOption.TopDirectoryOnly)
+                    .Concat(Directory.GetFiles(mbomFolderPath, "*.plmxml", SearchOption.TopDirectoryOnly))
+                    .ToArray();
 
-                string[] archivos = Directory.GetFiles(carpetaSeleccionada, "*.xml");
-                Array.Sort(archivos, StringComparer.OrdinalIgnoreCase);
-
-                if (archivos.Length == 0)
+                if (mbomFiles.Length == 0)
                 {
-                    Console.WriteLine("No se encontraron XML en la carpeta.");
-                    Utilidades.EscribirEnLog("No se encontraron XML en la carpeta.");
-                    return;
+                    LogGeneral($"ERROR: No se encontró XML raíz (MBOM) en {nombreCarpeta}. Carpeta → ERROR");
+                    LogCarpeta(rutaLogCarpeta, "ERROR: No se encontró XML raíz (MBOM).");
+                    MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
+                    return 0;
                 }
 
-                int okCount = 0;
-                int errorCount = 0;
-                int contadorXmls = 1;
+                string mbomXml = mbomFiles[0];
+                string nombreMbom = Path.GetFileName(mbomXml);
+                LogCarpeta(rutaLogCarpeta, $"MBOM detectada: {nombreMbom}");
 
-                // Procesamiento secuencial: por cada XML => limpiar BD => cargar => JSONs => POST/PUT => mover a procesados
-                foreach (string archivo in archivos)
+                // 2) Procesar MBOM
+                bool mbomOk = await ProcesarXml(mbomXml, isBopMode: false, rutaLogCarpeta);
+
+                if (!mbomOk)
                 {
-                    // Preparar logging individual
-                    string nombreArchivo = Path.GetFileName(archivo);
-                    // Log en carpeta de ejecución
-                    string rutaLog = Path.Combine(executionLogDir, $"{nombreArchivo}.log");
+                    LogGeneral($"MBOM FALLÓ en {nombreCarpeta}. Carpeta → ERROR");
+                    LogCarpeta(rutaLogCarpeta, "MBOM procesamiento FALLÓ. Se omiten BOPs.");
+                    Environment.CurrentDirectory = BaseProcesados;
+                    MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
+                    return 0;
+                }
 
-                    // Guardar la salida original de la consola
-                    TextWriter originalConsoleOut = Console.Out;
-                    StreamWriter fileWriter = null;
-                    MultiTextWriter multiWriter = null;
+                LogGeneral($"MBOM OK en {nombreCarpeta}");
+                LogCarpeta(rutaLogCarpeta, "MBOM procesada OK.");
 
+                // 3) Mover MBOM a MBOM_Procesada
+                try
+                {
+                    Directory.CreateDirectory(mbomProcesadaPath);
+                    MoverArchivo(mbomXml, mbomProcesadaPath);
+                    LogCarpeta(rutaLogCarpeta, $"MBOM movida a: {mbomProcesadaPath}");
+                }
+                catch (Exception ex)
+                {
+                    LogCarpeta(rutaLogCarpeta, $"ADVERTENCIA: no se pudo mover la MBOM: {ex.Message}");
+                }
+
+                // 4) Procesar BOPs
+                var bopFiles = Directory.Exists(bopPendientesPath)
+                    ? Directory.GetFiles(bopPendientesPath, "*.xml", SearchOption.TopDirectoryOnly)
+                    : Array.Empty<string>();
+                Array.Sort(bopFiles, StringComparer.OrdinalIgnoreCase);
+
+                int bopsTotal = bopFiles.Length;
+                int bopsOk = 0;
+                int bopsError = 0;
+                string bopErrorDir = Path.Combine(mbomFolderPath, NombreBopError);
+
+                Directory.CreateDirectory(bopProcesadasPath);
+                LogCarpeta(rutaLogCarpeta, $"BOPs a procesar: {bopsTotal}");
+
+                foreach (string bop in bopFiles)
+                {
+                    string nombreBop = Path.GetFileName(bop);
                     try
                     {
-                        // Inicializar el writer del archivo y el multiwriter
-                        fileWriter = new StreamWriter(rutaLog, append: true) { AutoFlush = true };
-                        multiWriter = new MultiTextWriter(originalConsoleOut, fileWriter);
-
-                        // Redirigir la consola
-                        Console.SetOut(multiWriter);
-
-                        Console.WriteLine("========================================================");
-                        Console.WriteLine($"Archivo leído: {nombreArchivo}");
-                        Console.WriteLine("========================================================");
-                        Console.WriteLine($"Log generado en: {rutaLog}");
-                        Console.WriteLine();
-
-                        bool cargaOk = false;
-
-                        try
+                        bool bopOk = await ProcesarXml(bop, isBopMode: true, rutaLogCarpeta);
+                        if (bopOk)
                         {
-                            // 1) Limpiar base para que este XML se procese aislado (sin mezclar con otros)
-                            using (SqlConnection conn = new SqlConnection(ConnectionString))
-                            {
-                                conn.Open();
-                                Console.WriteLine("Borrando TODAS las tablas de la base (dbo)...");
-                                BorrarTodasLasTablas(conn);
-                                Console.WriteLine("✔ Base limpia.");
-                                Console.WriteLine();
-
-                                // 2) Cargar XML a BD (tablas dinámicas por nodo)
-                                XmlDocument xmlDoc = new XmlDocument();
-                                xmlDoc.Load(archivo);
-
-                                XmlNode root = xmlDoc.DocumentElement;
-                                var groupedDataRows = new Dictionary<string, List<DataRow>>();
-
-                                bool okParse = ParseNode(root, groupedDataRows);
-                                if (!okParse || groupedDataRows.Count == 0)
-                                {
-                                    Console.WriteLine("No se detectaron nodos para cargar (ParseNode=false o sin resultados).");
-                                    Utilidades.EscribirEnLog($"ParseNode sin resultados para {Path.GetFileName(archivo)}");
-                                }
-                                else
-                                {
-                                    CreateTable(conn, groupedDataRows);
-                                    InsertData(conn, groupedDataRows, archivo, contadorXmls);
-
-                                    Console.WriteLine($"Carga a BD OK. Tablas afectadas: {groupedDataRows.Count}");
-                                    Utilidades.EscribirEnLog($"XML {Path.GetFileName(archivo)} cargado correctamente. Tablas: {groupedDataRows.Count}");
-                                    cargaOk = true;
-                                }
-
-                                groupedDataRows.Clear();
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error al cargar el XML: {ex}");
-                            Utilidades.EscribirEnLog($"Error al cargar el XML: {Path.GetFileName(archivo)}. Error: {ex}");
-                        }
-
-                        if (!cargaOk)
-                        {
-                            Console.WriteLine("Se omite envío (SG2/SH3, SB1, SG1) y movimiento del archivo por error de carga.");
-                            Console.WriteLine();
-                            errorCount++;
-                            contadorXmls++;
-                            continue;
-                        }
-
-                        bool envioOk = true;
-
-                        // 3) Generación y envío de JSONs (para este XML)
-                        // ---------------------------------------------------------------------------------
-
-
-                        if (!isBopMode)
-                        {
-                            try
-                            {
-                                Console.WriteLine("=============== SB1 - PRODUCTOS SUELTOS - INICIO ===============");
-                                if (ExisteTabla("Occurrence"))
-                                {
-                                    List<string> productos = Tabla_SB1.jsonSB1();
-
-                                    foreach (var producto in productos)
-                                    {
-                                        Console.WriteLine("---- JSON SB1 ----");
-                                        Console.WriteLine(producto);
-                                        await Tabla_SB1.postSB1(producto);
-                                    }
-                                }
-                                else
-                                {
-                                    Console.WriteLine("No se ejecuta SB1: no existe la tabla dbo.Occurrence (la carga del XML no generó tablas).");
-                                }
-                                Console.WriteLine("================= SB1 - PRODUCTOS SUELTOS - FIN =================");
-                                Console.WriteLine();
-                            }
-                            catch (Exception ex)
-                            {
-                                envioOk = false;
-                                Console.WriteLine($"Error en SB1: {ex}");
-                                Utilidades.EscribirEnLog($"Error en SB1 para {Path.GetFileName(archivo)}: {ex}");
-                                Console.WriteLine();
-                            }
+                            MoverArchivo(bop, bopProcesadasPath);
+                            bopsOk++;
+                            LogCarpeta(rutaLogCarpeta, $"BOP OK: {nombreBop}");
                         }
                         else
                         {
-                            Console.WriteLine("INFO: Se omite SB1 por estar en modo BOP.");
-                            Utilidades.EscribirEnLog("Omitiendo SB1 (Modo BOP).");
+                            Directory.CreateDirectory(bopErrorDir);
+                            MoverArchivo(bop, bopErrorDir);
+                            bopsError++;
+                            LogCarpeta(rutaLogCarpeta, $"BOP ERROR: {nombreBop} → {NombreBopError}");
                         }
-
-                        if (!isBopMode)
-                        {
-                            try
-                            {
-                                Console.WriteLine("=================== SG1 - ESTRUCTURA - INICIO ===================");
-                                if (ExisteTabla("Occurrence"))
-                                {
-                                    var estructuras = Tabla_SG1.jsonSG1();
-                                    Console.WriteLine($"[DEBUG] SG1: {estructuras.Count} productos con estructura generados");
-                                    await Tabla_SG1.postSG1(estructuras);
-                                }
-                                else
-                                {
-                                    Console.WriteLine("No se ejecuta SG1: no existe la tabla dbo.Occurrence (la carga del XML no generó tablas).");
-                                }
-                                Console.WriteLine("==================== SG1 - ESTRUCTURA - FIN =====================");
-                                Console.WriteLine();
-                            }
-                            catch (Exception ex)
-                            {
-                                envioOk = false;
-                                Console.WriteLine($"Error en SG1: {ex}");
-                                Utilidades.EscribirEnLog($"Error en SG1 para {Path.GetFileName(archivo)}: {ex}");
-                                Console.WriteLine();
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("INFO: Se omite SG1 por estar en modo BOP.");
-                            Utilidades.EscribirEnLog("Omitiendo SG1 (Modo BOP).");
-                        }
-
-                        // 3) SG2 / SH3 (Movido al final)
-                        try
-                        {
-                            Console.WriteLine("=============== SG2 / SH3 - INICIO ===============");
-                            if (ExisteTabla("ProcessOccurrence"))
-                            {
-                                List<string> procesos = Tablas_SG2_SH3.jsonSG2_SH3();
-                                Console.WriteLine($"[DEBUG] SG2/SH3: {procesos.Count} items generados");
-
-                                foreach (string json in procesos)
-                                {
-                                    Console.WriteLine("---- JSON SG2/SH3 ----");
-                                    Console.WriteLine(json);
-                                    await Tablas_SG2_SH3.postSG2_SH3(json);
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("No se ejecuta SG2/SH3: no existe la tabla dbo.ProcessOccurrence (probable XML MBOM sin BOP).");
-                            }
-                            Console.WriteLine("================ SG2 / SH3 - FIN =================");
-                            Console.WriteLine();
-                        }
-                        catch (Exception ex)
-                        {
-                            envioOk = false;
-                            Console.WriteLine($"Error en SG2/SH3: {ex}");
-                            Utilidades.EscribirEnLog($"Error en SG2/SH3 para {Path.GetFileName(archivo)}: {ex}");
-                            Console.WriteLine();
-                        }
-
-
-                        // 4) Mover archivo a procesados si no hubo errores no controlados de envío
-                        if (envioOk)
-                        {
-                            try
-                            {
-                                string destino = MoverArchivoAProcesados(archivo);
-                                Console.WriteLine($"Archivo movido a: {destino}");
-                                Utilidades.EscribirEnLog($"Archivo procesado y movido: {Path.GetFileName(archivo)} -> {destino}");
-                                okCount++;
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error al mover archivo a procesados: {ex}");
-                                Utilidades.EscribirEnLog($"Error al mover archivo a procesados: {Path.GetFileName(archivo)}. Error: {ex}");
-                                errorCount++;
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("No se mueve el archivo a procesados porque hubo error(es) no controlado(s) durante el envío.");
-                            Utilidades.EscribirEnLog($"No se movió a procesados (envío con error): {Path.GetFileName(archivo)}");
-                            errorCount++;
-                        }
-
-                        Console.WriteLine();
-                        contadorXmls++;
                     }
-                    finally
+                    catch (Exception ex)
                     {
-                        // IMPORTANTE: Restaurar la consola original y cerrar el writer del archivo
-                        if (multiWriter != null)
+                        LogCarpeta(rutaLogCarpeta, $"EXCEPCIÓN procesando BOP {nombreBop}: {ex.Message}");
+                        try
                         {
-                            Console.SetOut(originalConsoleOut);
-                            multiWriter.Dispose(); // Esto cierra fileWriter también
+                            Directory.CreateDirectory(bopErrorDir);
+                            MoverArchivo(bop, bopErrorDir);
                         }
+                        catch { }
+                        bopsError++;
                     }
                 }
 
-                Console.WriteLine("========================================================");
-                Console.WriteLine($"FIN - OK. Archivos procesados: {okCount}. Con error: {errorCount}.");
-                Console.WriteLine("========================================================");
+                LogGeneral($"BOPs {nombreCarpeta}: Total={bopsTotal}, OK={bopsOk}, ERROR={bopsError}");
+                LogCarpeta(rutaLogCarpeta, "========================================================");
+                LogCarpeta(rutaLogCarpeta, $"Resumen BOPs: Total={bopsTotal}, OK={bopsOk}, ERROR={bopsError}");
+
+                // 5) Mover carpeta completa a OK (criterio: si MBOM OK → OK, aunque haya BOPs fallados)
+                // Salir del directorio antes de moverlo para liberar cualquier handle del proceso
+                Environment.CurrentDirectory = BaseProcesados;
+                MoverCarpetaAProcesados(mbomFolderPath, CarpetaOK);
+                LogGeneral($"FIN carpeta {nombreCarpeta} → OK");
+
+                return 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error general: {ex}");
-                Utilidades.EscribirEnLog("Error general en Program.Main: " + ex);
+                LogGeneral($"EXCEPCIÓN FATAL en {nombreCarpeta}: {ex.Message}");
+                try
+                {
+                    LogCarpeta(rutaLogCarpeta, $"EXCEPCIÓN FATAL: {ex}");
+                    if (Directory.Exists(mbomFolderPath))
+                        MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
+                }
+                catch { }
+                return 1;
             }
         }
 
-
         // -----------------------------------------------------------------------------------------
-        // BORRADO TOTAL (requerimiento: "cada vez que se corra el programa, se borren TODAS las tablas")
+        // PROCESAR UN XML (MBOM o BOP): limpia BD → carga → envía SB1/SG1/SG2_SH3
         // -----------------------------------------------------------------------------------------
-
-
-        private static string MoverArchivoAProcesados(string archivoOrigen)
+        private static async Task<bool> ProcesarXml(string rutaXml, bool isBopMode, string logCarpeta)
         {
-            if (string.IsNullOrWhiteSpace(archivoOrigen))
-                throw new ArgumentException("Ruta de archivo origen vacía.", nameof(archivoOrigen));
+            string nombreArchivo = Path.GetFileName(rutaXml);
+            LogCarpeta(logCarpeta, $"--- Procesando {(isBopMode ? "BOP" : "MBOM")}: {nombreArchivo} ---");
 
-            Directory.CreateDirectory(CarpetaProcesados);
+            bool cargaOk = false;
 
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                    BorrarTodasLasTablas(conn);
+
+                    XmlDocument xmlDoc = new XmlDocument();
+                    xmlDoc.Load(rutaXml);
+                    XmlNode root = xmlDoc.DocumentElement;
+                    var grouped = new Dictionary<string, List<DataRow>>();
+
+                    bool okParse = ParseNode(root, grouped);
+                    if (!okParse || grouped.Count == 0)
+                    {
+                        LogCarpeta(logCarpeta, $"ParseNode sin resultados para {nombreArchivo}");
+                        return false;
+                    }
+
+                    CreateTable(conn, grouped);
+                    InsertData(conn, grouped, rutaXml, 1);
+                    LogCarpeta(logCarpeta, $"Carga BD OK. Tablas: {grouped.Count}");
+                    cargaOk = true;
+                    grouped.Clear();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogCarpeta(logCarpeta, $"Error cargando XML {nombreArchivo}: {ex.Message}");
+                return false;
+            }
+
+            if (!cargaOk) return false;
+
+            bool envioOk = true;
+
+            // SB1
+            try
+            {
+                if (!isBopMode)
+                {
+                    if (ExisteTabla("Occurrence"))
+                    {
+                        var productos = Tabla_SB1.jsonSB1();
+                        LogCarpeta(logCarpeta, $"SB1 MBOM: {productos.Count} productos");
+                        foreach (var p in productos)
+                        {
+                            Console.WriteLine(p);
+                            await Tabla_SB1.postSB1(p);
+                        }
+                    }
+                    else
+                    {
+                        LogCarpeta(logCarpeta, "SB1 MBOM omitido: no existe tabla Occurrence.");
+                    }
+                }
+                else
+                {
+                    if (ExisteTabla("ProcessOccurrence"))
+                    {
+                        var productos = Tabla_SB1.jsonSB1_BOP();
+                        LogCarpeta(logCarpeta, $"SB1 BOP: {productos.Count} productos");
+                        foreach (var p in productos)
+                        {
+                            Console.WriteLine(p);
+                            await Tabla_SB1.postSB1(p);
+                        }
+                    }
+                    else
+                    {
+                        LogCarpeta(logCarpeta, "SB1 BOP omitido: no existe tabla ProcessOccurrence.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                envioOk = false;
+                LogCarpeta(logCarpeta, $"Error en SB1: {ex.Message}");
+            }
+
+            // SG1
+            try
+            {
+                if (!isBopMode)
+                {
+                    if (ExisteTabla("Occurrence"))
+                    {
+                        var estructuras = Tabla_SG1.jsonSG1();
+                        LogCarpeta(logCarpeta, $"SG1 MBOM: {estructuras.Count} estructuras");
+                        await Tabla_SG1.postSG1(estructuras);
+                    }
+                    else
+                    {
+                        LogCarpeta(logCarpeta, "SG1 MBOM omitido: no existe tabla Occurrence.");
+                    }
+                }
+                else
+                {
+                    if (ExisteTabla("ProcessOccurrence"))
+                    {
+                        var estructuras = Tabla_SG1.jsonSG1_BOP();
+                        LogCarpeta(logCarpeta, $"SG1 BOP: {estructuras.Count} estructuras");
+                        await Tabla_SG1.postSG1(estructuras);
+                    }
+                    else
+                    {
+                        LogCarpeta(logCarpeta, "SG1 BOP omitido: no existe tabla ProcessOccurrence.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                envioOk = false;
+                LogCarpeta(logCarpeta, $"Error en SG1: {ex.Message}");
+            }
+
+            // SG2/SH3 (solo si hay ProcessOccurrence - típico de BOPs)
+            try
+            {
+                if (ExisteTabla("ProcessOccurrence"))
+                {
+                    var procesos = Tablas_SG2_SH3.jsonSG2_SH3();
+                    LogCarpeta(logCarpeta, $"SG2/SH3: {procesos.Count} items");
+                    foreach (string j in procesos)
+                    {
+                        Console.WriteLine(j);
+                        await Tablas_SG2_SH3.postSG2_SH3(j);
+                    }
+                }
+                else
+                {
+                    LogCarpeta(logCarpeta, "SG2/SH3 omitido: no existe tabla ProcessOccurrence.");
+                }
+            }
+            catch (Exception ex)
+            {
+                envioOk = false;
+                LogCarpeta(logCarpeta, $"Error en SG2/SH3: {ex.Message}");
+            }
+
+            return envioOk;
+        }
+
+        // -----------------------------------------------------------------------------------------
+        // HELPERS: movimiento y logging
+        // -----------------------------------------------------------------------------------------
+        private static void MoverArchivo(string archivoOrigen, string carpetaDestino)
+        {
+            Directory.CreateDirectory(carpetaDestino);
             string nombre = Path.GetFileName(archivoOrigen);
-            string destino = Path.Combine(CarpetaProcesados, nombre);
+            string destino = Path.Combine(carpetaDestino, nombre);
 
-            // Evitar sobrescritura si el archivo ya existe en procesados
             if (File.Exists(destino))
             {
                 string baseName = Path.GetFileNameWithoutExtension(nombre);
                 string ext = Path.GetExtension(nombre);
-                destino = Path.Combine(CarpetaProcesados, $"{baseName}_{DateTime.Now:yyyyMMdd_HHmmssfff}{ext}");
+                destino = Path.Combine(carpetaDestino, $"{baseName}_{DateTime.Now:yyyyMMdd_HHmmssfff}{ext}");
             }
 
             File.Move(archivoOrigen, destino);
-            return destino;
         }
 
+        private static void MoverCarpetaAProcesados(string carpetaOrigen, string carpetaDestinoRaiz)
+        {
+            Directory.CreateDirectory(carpetaDestinoRaiz);
+            string nombre = Path.GetFileName(carpetaOrigen.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            string destino = Path.Combine(carpetaDestinoRaiz, nombre);
 
+            if (Directory.Exists(destino))
+                destino = Path.Combine(carpetaDestinoRaiz, $"{nombre}_{DateTime.Now:yyyyMMdd_HHmmssfff}");
 
+            int intentos = 5;
+            for (int i = 0; i < intentos; i++)
+            {
+                try
+                {
+                    Directory.Move(carpetaOrigen, destino);
+                    return;
+                }
+                catch (IOException ex) when (i < intentos - 1)
+                {
+                    // Loggeamos el detalle completo para saber qué archivo está bloqueado
+                    string logPath = Path.Combine(carpetaOrigen, NombreLogCarpeta);
+                    LogCarpeta(logPath, $"REINTENTO {i + 1}/{ intentos - 1} mover carpeta. Motivo: {ex.Message}");
+                    Thread.Sleep(2000);
+                }
+            }
+        }
 
+        private static void LogGeneral(string mensaje)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(RutaGeneralLog)!);
+                File.AppendAllText(
+                    RutaGeneralLog,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {mensaje}{Environment.NewLine}",
+                    Encoding.UTF8);
+            }
+            catch { }
+        }
 
+        private static void LogCarpeta(string rutaLog, string mensaje)
+        {
+            try
+            {
+                string? dir = Path.GetDirectoryName(rutaLog);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                File.AppendAllText(
+                    rutaLog,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {mensaje}{Environment.NewLine}",
+                    Encoding.UTF8);
+            }
+            catch { }
+        }
 
-
+        // -----------------------------------------------------------------------------------------
+        // BORRADO TOTAL DE TABLAS (se ejecuta antes de cargar cada XML)
+        // -----------------------------------------------------------------------------------------
         private static void BorrarTodasLasTablas(SqlConnection connection)
         {
             try
             {
-                Console.WriteLine("Borrando TODAS las tablas de la base (dbo)...");
                 Utilidades.EscribirEnLog("Borrando TODAS las tablas de la base (dbo)...");
 
                 string sql = @"
@@ -430,14 +456,12 @@ IF @sql IS NOT NULL AND @sql <> N''
                     cmd.ExecuteNonQuery();
                 }
 
-                Console.WriteLine("✔ Tablas eliminadas.");
-                Utilidades.EscribirEnLog("✔ Tablas eliminadas.");
-                Console.WriteLine();
+                Utilidades.EscribirEnLog("Tablas eliminadas.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al borrar tablas: {ex.Message}");
-                Utilidades.EscribirEnLog($"❌ Error al borrar tablas: {ex.Message}");
+                Console.WriteLine($"Error al borrar tablas: {ex.Message}");
+                Utilidades.EscribirEnLog($"Error al borrar tablas: {ex.Message}");
             }
         }
 
@@ -460,27 +484,6 @@ IF @sql IS NOT NULL AND @sql <> N''
             catch
             {
                 return false;
-            }
-        }
-
-        // -----------------------------------------------------------------------------------------
-        // UTILIDAD
-        // -----------------------------------------------------------------------------------------
-        static void LimpiarCarpeta(string carpeta)
-        {
-            try
-            {
-                if (Directory.Exists(carpeta))
-                {
-                    foreach (string archivo in Directory.GetFiles(carpeta))
-                        File.Delete(archivo);
-
-                    Utilidades.EscribirEnLog($"Carpeta {carpeta} limpiada correctamente.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Utilidades.EscribirEnLog($"Error al limpiar la carpeta: {ex.Message}");
             }
         }
 
@@ -528,7 +531,6 @@ IF @sql IS NOT NULL AND @sql <> N''
                     return true;
                 }
 
-                // Igual recorremos hijos aunque el nodo se ignore (para no cortar el árbol)
                 foreach (XmlNode childNode in node.ChildNodes)
                     ParseNode(childNode, groupedDataRows, parentNodeName);
 
@@ -545,7 +547,6 @@ IF @sql IS NOT NULL AND @sql <> N''
         {
             string tableName = nodeName;
 
-            // Si el nodo no tiene atributo "id" (y no es PLMXML), lo disambiguamos con el padre
             if (!attributes.Contains("id") && tableName != "PLMXML")
                 tableName = $"{nodeName}_{parentNodeName}";
 
@@ -578,7 +579,6 @@ IF @sql IS NOT NULL AND @sql <> N''
                         }
                     }
 
-                    // PK lógico (id_Table) o relación al padre (id_Father)
                     createTableQuery += hasIdAttribute ? ", id_Table NVARCHAR(MAX)" : ", id_Father NVARCHAR(MAX)";
 
                     foreach (string columnName in additionalAttributes)
@@ -636,7 +636,6 @@ IF @sql IS NOT NULL AND @sql <> N''
 
                         foreach (string columnName in dataRow.Atributos)
                         {
-                            // Normalizaciones para ids (#idxxx / idxxx)
                             if (columnName == "id" || columnName == "instancedRef" || columnName == "masterRef" || columnName == "parentRef" || columnName == "instanceRefs")
                             {
                                 string attributeValue1 = dataRow.XmlNode.Attributes[columnName]?.Value;
@@ -646,14 +645,14 @@ IF @sql IS NOT NULL AND @sql <> N''
                                     hasIdAttribute = true;
                                     columnNames.Add("[id_Table]");
                                     parameterNames.Add("@id");
-                                    attributeValue1 = attributeValue1.Substring(2); // "id123" -> "123"
+                                    attributeValue1 = attributeValue1.Substring(2);
                                     parameters.Add(new SqlParameter("@id", attributeValue1));
                                 }
                                 else if (columnName == "instancedRef" && !string.IsNullOrEmpty(attributeValue1) && attributeValue1.Length > 3)
                                 {
                                     columnNames.Add("[instancedRef]");
                                     parameterNames.Add("@instancedRef");
-                                    attributeValue1 = attributeValue1.Substring(3); // "#id123" -> "123"
+                                    attributeValue1 = attributeValue1.Substring(3);
                                     parameters.Add(new SqlParameter("@instancedRef", attributeValue1));
                                 }
                                 else if (columnName == "masterRef" && !string.IsNullOrEmpty(attributeValue1) && attributeValue1.Length > 3)
@@ -672,7 +671,6 @@ IF @sql IS NOT NULL AND @sql <> N''
                                 }
                                 else if (columnName == "instanceRefs" && !string.IsNullOrEmpty(attributeValue1))
                                 {
-                                    // Puede contener múltiples refs; se guarda textual.
                                     columnNames.Add("[instanceRefs]");
                                     parameterNames.Add("@instanceRefs");
                                     parameters.Add(new SqlParameter("@instanceRefs", attributeValue1));
@@ -681,7 +679,6 @@ IF @sql IS NOT NULL AND @sql <> N''
                                 continue;
                             }
 
-                            // Atributos generales (NVARCHAR(MAX))
                             AlterTable(connection, tableName, columnName, "NVARCHAR(MAX)");
                             columnNames.Add($"[{columnName}]");
                             parameterNames.Add($"@{columnName}");
@@ -690,12 +687,10 @@ IF @sql IS NOT NULL AND @sql <> N''
                             parameters.Add(new SqlParameter($"@{columnName}", attributeValue));
                         }
 
-                        // Contenido (innerText)
                         columnNames.Add("[contenido]");
                         parameterNames.Add("@contenido");
                         parameters.Add(new SqlParameter("@contenido", dataRow.XmlNode.InnerText ?? ""));
 
-                        // FK lógico al padre si no hay id propio
                         if (!hasIdAttribute)
                         {
                             columnNames.Add("[id_Father]");
@@ -704,7 +699,6 @@ IF @sql IS NOT NULL AND @sql <> N''
                             XmlNode parentNode = dataRow.XmlNode.ParentNode;
                             string parentAttributeValue = parentNode?.Attributes?["id"]?.Value;
 
-                            // "id123" -> "123"
                             string parentId = (!string.IsNullOrEmpty(parentAttributeValue) && parentAttributeValue.Length > 2)
                                 ? parentAttributeValue.Substring(2)
                                 : "0";
@@ -712,7 +706,6 @@ IF @sql IS NOT NULL AND @sql <> N''
                             parameters.Add(new SqlParameter("@idFather", parentId));
                         }
 
-                        // idXml (contador por archivo)
                         columnNames.Add("[idXml]");
                         parameterNames.Add("@idXml");
                         parameters.Add(new SqlParameter("@idXml", contadorXmls));

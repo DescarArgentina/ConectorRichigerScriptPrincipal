@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace WEB_SERVICE_RICHIGER
 {
@@ -55,8 +56,6 @@ namespace WEB_SERVICE_RICHIGER
                     };
 
                     string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
-
-                    Console.WriteLine("JSON generado:");
                     Console.WriteLine(jsonData);
 
                     // 1) POST /Incluir
@@ -73,15 +72,13 @@ namespace WEB_SERVICE_RICHIGER
 
                         if (statusCodePost >= 200 && statusCodePost <= 299)
                         {
-                            Console.WriteLine($"POST TCEstructura -> {statusCodePost}");
-                            Console.WriteLine(responsePost);
+                            Console.WriteLine($"[SG1] POST {parent.Key} -> OK ({statusCodePost})");
                             continue;
                         }
 
                         // 409 = ya existe en ERP: reintentar con PUT /Modificar
                         if (statusCodePost == 409)
                         {
-                            Console.WriteLine($"Ya existe (409). Intentando PUT /Modificar...");
                             var contentPut = new StringContent(jsonData, Encoding.UTF8, "application/json");
                             HttpResponseMessage respPut = await client.PutAsync(urlPut, contentPut);
 
@@ -90,166 +87,26 @@ namespace WEB_SERVICE_RICHIGER
 
                             if (statusCodePut >= 200 && statusCodePut <= 299)
                             {
-                                Console.WriteLine($"PUT TCEstructura -> {statusCodePut}");
-                                Console.WriteLine(responsePut);
+                                Console.WriteLine($"[SG1] PUT  {parent.Key} -> OK ({statusCodePut})");
                             }
                             else
                             {
-                                Console.WriteLine($"PUT falló: {statusCodePut}");
-                                Console.WriteLine(responsePut);
+                                Console.WriteLine($"[SG1] PUT  {parent.Key} -> ERROR ({statusCodePut}): {responsePut}");
                             }
 
                             continue;
                         }
 
                         // Otros códigos: loguear el cuerpo de respuesta para diagnóstico
-                        Console.WriteLine($"POST falló: {statusCodePost}");
-                        Console.WriteLine(responsePost);
+                        Console.WriteLine($"[SG1] POST {parent.Key} -> ERROR ({statusCodePost}): {responsePost}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error al enviar estructura de producto {parent.Key}: {ex.Message}");
-                        if (!string.IsNullOrWhiteSpace(responsePost))
-                        {
-                            Console.WriteLine("Respuesta del servicio:");
-                            Console.WriteLine(responsePost);
-                        }
+                        Console.WriteLine($"[SG1] Error al enviar estructura {parent.Key}: {ex.Message}");
                     }
                 }
             }
         }
-
-        //        public async Task postSG1(string jsonString)
-        //        {
-        //            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-        //            string username = "ADMIN"; // Usuario proporcionado
-        //            string password = "Totvs2024##"; // Contraseña proporcionada
-
-        //            using (HttpClient client = new HttpClient())
-        //            {
-        //                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-        //                client.DefaultRequestHeaders.Authorization =
-        //                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-
-        //                try
-        //                {
-        //                    // Validar que el JSON sea válido
-        //                    JObject obj = JObject.Parse(jsonString);
-
-        //                    // Obtener directamente el valor del campo "producto"
-        //                    string codigo = obj["producto"]?.ToString();
-
-        //                    // Asegurarse de que el código no sea nulo
-        //                    if (string.IsNullOrEmpty(codigo))
-        //                    {
-        //                        Console.WriteLine("Error: No se pudo obtener el código del producto del JSON");
-        //                        Console.WriteLine($"JSON recibido: {jsonString}");
-        //                        return;
-        //                    }
-
-        //                    // Ahora puedes usar el código del producto
-        //                    Console.WriteLine($"Código del producto: {codigo}");
-
-        //                    // Imprimir el JSON que se enviará (ya viene formateado)
-        //                    Console.WriteLine("JSON a enviar:");
-        //                    Console.WriteLine(jsonString);
-
-        //                    int statusCode = 0;
-        //                    string responseData = string.Empty;
-
-        //                    try
-        //                    {
-        //                        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        //                        HttpResponseMessage response = await client.PostAsync(url, content);
-
-        //                        // Leer el código de estado
-        //                        statusCode = (int)response.StatusCode;
-
-        //                        // Leer la respuesta como string
-        //                        responseData = await response.Content.ReadAsStringAsync();             
-
-        //                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-        //                        response.EnsureSuccessStatusCode();
-
-        //                        Console.WriteLine($"Respuesta para producto {codigo}: {responseData}, {statusCode}");
-        //                    }
-        //                    catch (Exception ex)
-        //                    {
-        //                        Console.WriteLine($"Error al enviar producto {codigo}: {ex.Message}");
-        //                    }
-        //                    finally
-        //                    {
-        //                        // Se ejecutará siempre, tanto si hay error como si no
-        //                        //ActualizarBase(statusCode, responseData, codigo);
-        //                    }
-        //                }
-        //                catch (JsonException ex)
-        //                {
-        //                    Console.WriteLine($"Error al parsear JSON: {ex.Message}");
-        //                    Console.WriteLine($"JSON recibido: {jsonString}");
-        //                }
-        //                catch (Exception ex)
-        //                {
-        //                    Console.WriteLine($"Error general: {ex.Message}");
-        //                }
-        //            }
-        //        }
-
-
-
-        //        public static async Task putSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
-        //{
-        //    // PUT directo (sin POST previo). Se mantiene por compatibilidad, pero lo recomendado es usar postSG1 (upsert).
-        //    string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
-        //    string username = "ADMIN";
-        //    string password = "Totvs2024##";
-
-        //    using (HttpClient client = new HttpClient())
-        //    {
-        //        var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-        //        client.DefaultRequestHeaders.Authorization =
-        //            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-
-        //        foreach (var parent in estructuras)
-        //        {
-        //            var jsonBody = new
-        //            {
-        //                produto = parent.Key,
-        //                qtdBase = "1",
-        //                estrutura = parent.Value
-        //            };
-
-        //            string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
-
-        //            Console.WriteLine("JSON generado:");
-        //            Console.WriteLine(jsonData);
-
-        //            try
-        //            {
-        //                var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-        //                HttpResponseMessage response = await client.PutAsync(url, content);
-
-        //                int statusCode = (int)response.StatusCode;
-        //                string responseData = await response.Content.ReadAsStringAsync();
-
-        //                if (statusCode >= 200 && statusCode <= 299)
-        //                {
-        //                    Console.WriteLine($"PUT TCEstructura -> {statusCode}");
-        //                    Console.WriteLine(responseData);
-        //                }
-        //                else
-        //                {
-        //                    Console.WriteLine($"PUT falló: {statusCode}");
-        //                    Console.WriteLine(responseData);
-        //                }
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
-        //            }
-        //        }
-        //    }
-        //}
 
         public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1()
         {
@@ -262,6 +119,8 @@ namespace WEB_SERVICE_RICHIGER
         ProductRevision.name,
         CASE 
           WHEN Product.productId LIKE 'M-%' 
+            THEN SUBSTRING(Product.productId, 3, LEN(Product.productId))
+          WHEN Product.productId LIKE 'P-%' 
             THEN SUBSTRING(Product.productId, 3, LEN(Product.productId))
           ELSE Product.productId
         END AS codigo,
@@ -284,6 +143,8 @@ namespace WEB_SERVICE_RICHIGER
     LEFT JOIN UserValue_UserData uud2 
         ON Occurrence.id_Table - 1 = uud2.id_Father
        AND uud2.title = 'bl_formula'
+    WHERE ProductRevision.subType <> 'Ric4_Ingenieria'
+      AND Product.subType <> 'Ric4_Ingenieria'
     GROUP BY
         ProductRevision.name,
         Product.productId,
@@ -335,13 +196,14 @@ GROUP BY
                                 string parentCodigo = reader["ParentCodigo"]?.ToString();
                                 string childName = reader["ChildName"]?.ToString() ?? string.Empty;
                                 string childCodigo = reader["ChildCodigo"]?.ToString() ?? string.Empty;
-                                string cantidadHijo = reader["CantidadHijo"]?.ToString().Replace(',', '.') ?? string.Empty;
+                                string cantidadHijoRaw = (reader["CantidadHijo"]?.ToString() ?? "0").Replace(',', '.');
 
-                                //string parentName = reader["Nombre_Padre"]?.ToString() ?? string.Empty;
-                                //string parentCodigo = reader["Codigo_Padre"]?.ToString();
-                                //string childName = reader["Nombre_Hijo"]?.ToString() ?? string.Empty;
-                                //string childCodigo = reader["Codigo_Hijo"]?.ToString() ?? string.Empty;
-                                //string cantidadHijo = reader["CantidadHijo_Total"]?.ToString().Replace(',', '.') ?? string.Empty;
+                                if (!double.TryParse(cantidadHijoRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out double cantidadVal))
+                                    cantidadVal = 0;
+
+                                cantidadVal = Math.Truncate(cantidadVal * 100) / 100.0;
+
+                                string cantidadHijo = cantidadVal.ToString("0.00", CultureInfo.InvariantCulture);
 
                                 if (string.IsNullOrEmpty(parentCodigo))
                                 {
@@ -356,12 +218,8 @@ GROUP BY
                                     ChildName = childName,
                                     ChildCodigo = childCodigo,
                                     CantidadHijo = cantidadHijo
-
-                                    //Variante = reader.IsDBNull(reader.GetOrdinal("Variante")) ?
-                                    //string.Empty : reader["Variante"].ToString()
                                 };
 
-                                //poblarBaseSG1(parentName, parentCodigo, childName, childCodigo, cantidadHijo);
                                 if (!dataByParent.ContainsKey(model.ParentCodigo))
                                 {
                                     dataByParent[model.ParentCodigo] = new List<DataModel>();
@@ -376,7 +234,6 @@ GROUP BY
                                 string parentCodigo = parentGroup.Key;
                                 List<DataModel> children = parentGroup.Value;
 
-                                // Skip if parentCodigo is null or empty (should not happen at this point, but just in case)
                                 if (string.IsNullOrEmpty(parentCodigo))
                                 {
                                     Console.WriteLine("WARNING: Skipping group with null or empty ParentCodigo");
@@ -387,48 +244,6 @@ GROUP BY
                                 {
                                     estructuras[parentCodigo] = new List<List<Dictionary<string, string>>>();
                                 }
-
-                                // Analizamos las condiciones de todos los hijos
-                                var allConditions = new Dictionary<string, List<string>>();
-
-                                foreach (var child in children)
-                                {
-                                    if (!string.IsNullOrEmpty(child.Variante))
-                                    {
-                                        try
-                                        {
-                                            var conditions = ExtractAllConditions(child.Variante);
-                                            foreach (var condition in conditions)
-                                            {
-                                                if (condition.Key == null)
-                                                {
-                                                    Console.WriteLine($"WARNING: Null key found in conditions for Variante: {child.Variante}");
-                                                    continue;
-                                                }
-
-                                                if (!allConditions.ContainsKey(condition.Key))
-                                                {
-                                                    allConditions[condition.Key] = new List<string>();
-                                                }
-
-                                                if (!allConditions[condition.Key].Contains(condition.Value))
-                                                {
-                                                    allConditions[condition.Key].Add(condition.Value);
-                                                }
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine($"Error processing Variante '{child.Variante}': {ex.Message}");
-                                        }
-                                    }
-                                }
-
-                                // Rest of processing with proper null checking...
-                                // (Remaining code follows the same pattern - ensuring no null keys are used)
-
-                                // Process each child and add the relevant conditions
-                                var configCounter = new Dictionary<string, int>();
 
                                 foreach (var child in children)
                                 {
@@ -517,15 +332,6 @@ GROUP BY
                                     // Only add grupo_opc and opcional if we have a defined group
                                     if (grupoOpc != null)
                                     {
-                                        // Add grupo_opc
-
-
-                                        // Initialize counter for this configuration if it doesn't exist
-                                        if (prefijoOpcional != null && !configCounter.ContainsKey(prefijoOpcional))
-                                        {
-                                            configCounter[prefijoOpcional] = 1;
-                                        }
-
                                         // Format depends on if it's a special case or normal
                                         string valorOpcional;
                                         if (prefijoOpcional != null && prefijoOpcional.Length > 1) // Special case (SSE, SSH, FSE)
@@ -549,8 +355,6 @@ GROUP BY
                                         //valorOpcional = $"{prefijoOpcional ?? "A"}";
                                     }
 
-                                    // Add opcional field
-
                                     estructuras[parentCodigo].Add(childStructure);
                                 }
                             }
@@ -562,23 +366,6 @@ GROUP BY
             {
                 Console.WriteLine($"Error al consultar la base de datos: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            }
-
-            // Generate and print JSON output
-            foreach (var parent in estructuras)
-            {
-                var jsonBody = new
-                {
-                    producto = parent.Key,
-                    qtdBase = "1",
-                    estructura = parent.Value
-                };
-
-                string jsonData = JsonConvert.SerializeObject(jsonBody, Formatting.Indented);
-
-                // Print the generated JSON
-                Console.WriteLine("JSON generado:");
-                Console.WriteLine(jsonData);
             }
 
             return estructuras;
@@ -749,6 +536,137 @@ GROUP BY
                 }
             }
             return conditions;
+        }
+
+        public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1_BOP()
+        {
+            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+
+            string query = @"WITH RootProcess AS (
+    SELECT TOP (1)
+        p.name        AS ParentName,
+        CASE
+            WHEN p.catalogueId LIKE 'P-%' THEN SUBSTRING(p.catalogueId, 3, LEN(p.catalogueId))
+            ELSE p.catalogueId
+        END AS ParentCodigo
+    FROM dbo.[ProcessOccurrence] po
+    INNER JOIN dbo.[ProcessRevision] pr
+        ON pr.id_Table = po.instancedRef
+    INNER JOIN dbo.[Process] p
+        ON p.id_Table = pr.masterRef
+    WHERE po.parentRef IS NULL
+),
+OpOccurrences AS (
+    SELECT
+        po_op.id_Table AS OpOccId
+    FROM dbo.[ProcessOccurrence] po_op
+    INNER JOIN dbo.[OperationRevision] opr
+        ON opr.id_Table = po_op.instancedRef
+    INNER JOIN dbo.[Operation] op
+        ON op.id_Table = opr.masterRef
+),
+Consumed AS (
+    SELECT
+        rp.ParentName,
+        rp.ParentCodigo,
+        pr_child.name AS ChildName,
+        CASE
+            WHEN p_child.productId LIKE 'M-%'
+                THEN SUBSTRING(p_child.productId, 3, LEN(p_child.productId))
+            ELSE p_child.productId
+        END AS ChildCodigo,
+        CAST(SUM(
+            TRY_CAST(
+                CASE
+                    WHEN q.value IS NULL OR q.value = '' THEN '1'
+                    ELSE q.value
+                END AS FLOAT
+            )
+        ) AS DECIMAL(18, 6)) AS CantidadHijo
+    FROM dbo.[Occurrence] oc
+    INNER JOIN OpOccurrences opo
+        ON opo.OpOccId = oc.parentRef
+    INNER JOIN dbo.[ProductRevision] pr_child
+        ON pr_child.id_Table = oc.instancedRef
+    INNER JOIN dbo.[Product] p_child
+        ON p_child.id_Table = pr_child.masterRef
+    LEFT JOIN dbo.[UserValue_UserData] q
+        ON oc.id_Table + 2 = q.id_Father
+       AND q.title = 'Quantity'
+    CROSS JOIN RootProcess rp
+    WHERE oc.subType = 'MEConsumed'
+      AND pr_child.subType <> 'Ric4_Ingenieria'
+      AND p_child.subType <> 'Ric4_Ingenieria'
+    GROUP BY
+        rp.ParentName,
+        rp.ParentCodigo,
+        pr_child.name,
+        p_child.productId
+)
+SELECT
+    ParentName,
+    ParentCodigo,
+    ChildName,
+    ChildCodigo,
+    CantidadHijo,
+    NULL AS Variante
+FROM Consumed
+ORDER BY ChildCodigo;";
+
+            Dictionary<string, List<List<Dictionary<string, string>>>> estructuras = new Dictionary<string, List<List<Dictionary<string, string>>>>();
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.CommandTimeout = 1200;
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string parentCodigo = reader["ParentCodigo"]?.ToString();
+                                string childCodigo = reader["ChildCodigo"]?.ToString() ?? string.Empty;
+                                string cantidadHijoRaw = (reader["CantidadHijo"]?.ToString() ?? "0").Replace(',', '.');
+
+                                if (!double.TryParse(cantidadHijoRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out double cantidadVal))
+                                    cantidadVal = 0;
+
+                                cantidadVal = Math.Truncate(cantidadVal * 100) / 100.0;
+
+                                string cantidadHijo = cantidadVal.ToString("0.00", CultureInfo.InvariantCulture);
+
+                                if (string.IsNullOrEmpty(parentCodigo))
+                                {
+                                    continue;
+                                }
+
+                                if (!estructuras.ContainsKey(parentCodigo))
+                                {
+                                    estructuras[parentCodigo] = new List<List<Dictionary<string, string>>>();
+                                }
+
+                                // Estructura simple para BOP (sin variantes)
+                                var childStructure = new List<Dictionary<string, string>>
+                            {
+                                new Dictionary<string, string> { { "campo", "codigo" }, { "valor", childCodigo } },
+                                new Dictionary<string, string> { { "campo", "cantidad" }, { "valor", cantidadHijo } }
+                            };
+
+                                estructuras[parentCodigo].Add(childStructure);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error jsonSG1_BOP: {ex.Message}");
+            }
+
+            return estructuras;
         }
     }
 }
