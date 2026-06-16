@@ -1,0 +1,158 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\tabla_sb1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tabla_sb1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\tabla_sg1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tabla_sg1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\tablas_sg2_sh3.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tablas_sg2_sh3.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\xml_bom.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:xml_bom.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\tablebucket.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:tablebucket.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\xml_bop.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:xml_bop.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|c:\\users\\pc-01\\desktop\\proyectos\\richiger\\conectorrichiger\\utilidades.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A20627FE-2EA6-403F-A807-89F2B350EBC1}|WEB SERVICE RICHIGER.csproj|solutionrelative:utilidades.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 8,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Program.cs*",
+              "RelativeToolTip": "Program.cs*",
+              "ViewState": "AgIAAC8AAAAAAAAAAAAswBMAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.403Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Tabla_SG1.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Tabla_SG1.cs",
+              "RelativeDocumentMoniker": "Tabla_SG1.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Tabla_SG1.cs",
+              "RelativeToolTip": "Tabla_SG1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACICAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TableBucket.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\TableBucket.cs",
+              "RelativeDocumentMoniker": "TableBucket.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\TableBucket.cs",
+              "RelativeToolTip": "TableBucket.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAA/AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Tablas_SG2_SH3.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Tablas_SG2_SH3.cs",
+              "RelativeDocumentMoniker": "Tablas_SG2_SH3.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Tablas_SG2_SH3.cs",
+              "RelativeToolTip": "Tablas_SG2_SH3.cs",
+              "ViewState": "AgIAAI4AAAAAAAAAAADwv6cAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "XML_Bop.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\XML_Bop.cs",
+              "RelativeDocumentMoniker": "XML_Bop.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\XML_Bop.cs",
+              "RelativeToolTip": "XML_Bop.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "XML_Bom.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\XML_Bom.cs",
+              "RelativeDocumentMoniker": "XML_Bom.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\XML_Bom.cs",
+              "RelativeToolTip": "XML_Bom.cs",
+              "ViewState": "AgIAAHcAAAAAAAAAAAAwwD8AAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Utilidades.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Utilidades.cs",
+              "RelativeDocumentMoniker": "Utilidades.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Utilidades.cs",
+              "RelativeToolTip": "Utilidades.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Tabla_SB1.cs",
+              "DocumentMoniker": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Tabla_SB1.cs",
+              "RelativeDocumentMoniker": "Tabla_SB1.cs",
+              "ToolTip": "C:\\Users\\PC-01\\Desktop\\Proyectos\\Richiger\\ConectorRichiger\\Tabla_SB1.cs",
+              "RelativeToolTip": "Tabla_SB1.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAgwDIBAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-09T13:47:10.451Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

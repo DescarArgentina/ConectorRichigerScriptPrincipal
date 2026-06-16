@@ -1,13 +1,15 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace WEB_SERVICE_RICHIGER
 {
@@ -25,6 +27,7 @@ namespace WEB_SERVICE_RICHIGER
 
     public class Tabla_SG1
     {
+        private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(10);
         private readonly HttpClient _httpClient;
         public Tabla_SG1()
         {
@@ -32,17 +35,17 @@ namespace WEB_SERVICE_RICHIGER
         }
         public static async Task postSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
         {
-            
-            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-            string username = "ADMIN"; // Usuario proporcionado
-            string password = "Totvs2024##"; // Contraseña proporcionada
+            // Upsert: intenta Incluir (POST) y si el ERP devuelve 409 (ya existe), reintenta con Modificar (PUT).
+            string urlPost = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
+            string urlPut = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
+            string username = "ADMIN";
+            string password = "Totvs2024##";
 
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = new HttpClient { Timeout = RequestTimeout })
             {
                 var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
                 client.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-
 
                 foreach (var parent in estructuras)
                 {
@@ -53,268 +56,64 @@ namespace WEB_SERVICE_RICHIGER
                         estructura = parent.Value
                     };
 
-                    string jsonData = JsonConvert.SerializeObject(jsonBody, Formatting.Indented);
-                    JObject obj = JObject.Parse(jsonData);
-
-                    // Obtener directamente el valor del campo "producto"
-                    string codigo = obj["producto"]?.ToString();
-
-                    // Asegurarse de que el código no sea nulo
-                    if (string.IsNullOrEmpty(codigo))
-                    {
-                        // Manejar el caso cuando no se encuentra el código del producto
-                        Console.WriteLine("Error: No se pudo obtener el código del producto");
-                        continue;
-                    }
-
-                    // Ahora puedes usar el código del producto
-                    Console.WriteLine($"Código del producto: {codigo}");
-
-                    // Continuar con el resto del procesamiento...
-                
-
-                // Imprimir el JSON generado
-                Console.WriteLine("JSON generado:");
+                    string jsonData = JsonConvert.SerializeObject(jsonBody, Newtonsoft.Json.Formatting.Indented);
                     Console.WriteLine(jsonData);
-                    //Console.WriteLine(codigo);
 
-
-                    int statusCode = 0;
-                    string responseData = string.Empty;
-
-                    try
-                    {
-                        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                        HttpResponseMessage response = await client.PostAsync(url, content);
-
-                        // Leer el código de estado
-                        statusCode = (int)response.StatusCode;
-
-                        // Leer la respuesta como string
-                        responseData = await response.Content.ReadAsStringAsync();
-
-                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-                        response.EnsureSuccessStatusCode();
-
-                        Console.WriteLine($"Respuesta para producto {parent.Key}: {responseData}, {statusCode}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        // Se ejecutará siempre, tanto si hay error como si no
-                        //ActualizarBase(statusCode, responseData, codigo);
-                    }
-                }
-            }
-        }
-
-        public async Task postSG1(string jsonString)
-        {
-            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Incluir/";
-            string username = "ADMIN"; // Usuario proporcionado
-            string password = "Totvs2024##"; // Contraseña proporcionada
-
-            using (HttpClient client = new HttpClient())
-            {
-                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-
-                try
-                {
-                    // Validar que el JSON sea válido
-                    JObject obj = JObject.Parse(jsonString);
-
-                    // Obtener directamente el valor del campo "producto"
-                    string codigo = obj["producto"]?.ToString();
-
-                    // Asegurarse de que el código no sea nulo
-                    if (string.IsNullOrEmpty(codigo))
-                    {
-                        Console.WriteLine("Error: No se pudo obtener el código del producto del JSON");
-                        Console.WriteLine($"JSON recibido: {jsonString}");
-                        return;
-                    }
-
-                    // Ahora puedes usar el código del producto
-                    Console.WriteLine($"Código del producto: {codigo}");
-
-                    // Imprimir el JSON que se enviará (ya viene formateado)
-                    Console.WriteLine("JSON a enviar:");
-                    Console.WriteLine(jsonString);
-
-                    int statusCode = 0;
-                    string responseData = string.Empty;
+                    // 1) POST /Incluir
+                    int statusCodePost = 0;
+                    string responsePost = string.Empty;
 
                     try
                     {
-                        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-                        HttpResponseMessage response = await client.PostAsync(url, content);
+                        var contentPost = new StringContent(jsonData, Encoding.UTF8, "application/json");
+                        HttpResponseMessage respPost = await client.PostAsync(urlPost, contentPost);
 
-                        // Leer el código de estado
-                        statusCode = (int)response.StatusCode;
+                        statusCodePost = (int)respPost.StatusCode;
+                        responsePost = await respPost.Content.ReadAsStringAsync();
 
-                        // Leer la respuesta como string
-                        responseData = await response.Content.ReadAsStringAsync();             
+                        if (statusCodePost >= 200 && statusCodePost <= 299)
+                        {
+                            Console.WriteLine($"[SG1] POST {parent.Key} -> OK ({statusCodePost})");
+                            Utilidades.EscribirEnLog($"[SG1] POST {parent.Key} -> OK ({statusCodePost})");
+                            continue;
+                        }
 
-                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-                        response.EnsureSuccessStatusCode();
+                        // 409 = ya existe en ERP: reintentar con PUT /Modificar
+                        if (statusCodePost == 409)
+                        {
+                            var contentPut = new StringContent(jsonData, Encoding.UTF8, "application/json");
+                            HttpResponseMessage respPut = await client.PutAsync(urlPut, contentPut);
 
-                        Console.WriteLine($"Respuesta para producto {codigo}: {responseData}, {statusCode}");
+                            int statusCodePut = (int)respPut.StatusCode;
+                            string responsePut = await respPut.Content.ReadAsStringAsync();
+
+                            if (statusCodePut >= 200 && statusCodePut <= 299)
+                            {
+                                Console.WriteLine($"[SG1] PUT  {parent.Key} -> OK ({statusCodePut})");
+                                Utilidades.EscribirEnLog($"[SG1] PUT {parent.Key} -> OK ({statusCodePut})");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[SG1] PUT  {parent.Key} -> ERROR ({statusCodePut}): {responsePut}");
+                                Utilidades.EscribirEnLog($"[SG1] PUT {parent.Key} -> ERROR ({statusCodePut}): {responsePut}");
+                            }
+
+                            continue;
+                        }
+
+                        // Otros códigos: loguear el cuerpo de respuesta para diagnóstico
+                        Console.WriteLine($"[SG1] POST {parent.Key} -> ERROR ({statusCodePost}): {responsePost}");
+                        Utilidades.EscribirEnLog($"[SG1] POST {parent.Key} -> ERROR ({statusCodePost}): {responsePost}");
+                    }
+                    catch (TaskCanceledException ex)
+                    {
+                        Console.WriteLine($"[SG1] TIMEOUT enviando estructura {parent.Key} tras {RequestTimeout.TotalSeconds:0} segundos: {ex.Message}");
+                        Utilidades.EscribirEnLog($"[SG1] TIMEOUT POST {parent.Key} tras {RequestTimeout.TotalSeconds:0} segundos: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error al enviar producto {codigo}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        // Se ejecutará siempre, tanto si hay error como si no
-                        //ActualizarBase(statusCode, responseData, codigo);
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    Console.WriteLine($"Error al parsear JSON: {ex.Message}");
-                    Console.WriteLine($"JSON recibido: {jsonString}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error general: {ex.Message}");
-                }
-            }
-        }
-
-        //public async Task<List<string>> PostSG1(string apiUrl, List<string> jsonList, string username, string password)
-        //{
-        //    var results = new List<string>();
-
-        //    try
-        //    {
-        //        // Configurar Basic Authentication
-        //        var authValue = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-        //        _httpClient.DefaultRequestHeaders.Authorization =
-        //            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authValue);
-
-        //        foreach (var item in jsonList)
-        //        {
-        //            try
-        //            {
-        //                // Preparar el contenido JSON
-        //                var jsonPayload = JsonConvert.SerializeObject(item);
-        //                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-        //                // Realizar la petición POST
-        //                var response = await _httpClient.PostAsync(apiUrl, content);
-
-        //                // Verificar si la respuesta es exitosa
-        //                if (response.IsSuccessStatusCode)
-        //                {
-        //                    var responseContent = await response.Content.ReadAsStringAsync();
-        //                    results.Add(responseContent);
-        //                }
-        //                else
-        //                {
-        //                    var errorContent = await response.Content.ReadAsStringAsync();
-        //                    throw new HttpRequestException($"Error en la petición para item: {response.StatusCode} - {response.ReasonPhrase}. Contenido: {errorContent}");
-        //                }
-        //            }
-        //            catch (HttpRequestException)
-        //            {
-        //                // Re-lanzar excepciones HTTP específicas
-        //                throw;
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                throw new Exception($"Error al procesar item '{item}': {ex.Message}", ex);
-        //            }
-        //        }
-
-        //        return results;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new Exception($"Error al enviar datos a la API: {ex.Message}", ex);
-        //    }
-        //}
-
-        public static async Task putSG1(Dictionary<string, List<List<Dictionary<string, string>>>> estructuras)
-        {
-            string url = "https://richiger-protheus-rest-val.totvs.ar/rest/TCEstructura/Modificar/";
-            string username = "ADMIN"; // Usuario proporcionado
-            string password = "Totvs2024##"; // Contraseña proporcionada
-
-            using (HttpClient client = new HttpClient())
-            {
-                var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-
-
-                foreach (var parent in estructuras)
-                {
-                    var jsonBody = new
-                    {
-                        producto = parent.Key,
-                        qtdBase = "1",
-                        estructura = parent.Value
-                    };
-
-                    string jsonData = JsonConvert.SerializeObject(jsonBody, Formatting.Indented);
-                    JObject obj = JObject.Parse(jsonData);
-
-                    // Obtener directamente el valor del campo "producto"
-                    string codigo = obj["producto"]?.ToString();
-
-                    // Asegurarse de que el código no sea nulo
-                    if (string.IsNullOrEmpty(codigo))
-                    {
-                        // Manejar el caso cuando no se encuentra el código del producto
-                        Console.WriteLine("Error: No se pudo obtener el código del producto");
-                        continue;
-                    }
-
-                    // Ahora puedes usar el código del producto
-                    Console.WriteLine($"Código del producto: {codigo}");
-
-                    // Continuar con el resto del procesamiento...
-
-
-                    // Imprimir el JSON generado
-                    Console.WriteLine("JSON generado:");
-                    Console.WriteLine(jsonData);
-                    Console.WriteLine(codigo);
-
-
-                    int statusCode = 0;
-                    string responseData = string.Empty;
-
-                    try
-                    {
-                        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                        HttpResponseMessage response = await client.PutAsync(url, content);
-
-                        // Leer el código de estado
-                        statusCode = (int)response.StatusCode;
-
-                        // Leer la respuesta como string
-                        responseData = await response.Content.ReadAsStringAsync();
-
-                        // Verificar si la respuesta fue exitosa (puede lanzar excepción)
-                        response.EnsureSuccessStatusCode();
-
-                        Console.WriteLine($"Respuesta para producto {parent.Key}: {responseData}, {statusCode}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error al enviar producto {parent.Key}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        // Se ejecutará siempre, tanto si hay error como si no
-                        //ActualizarBase(statusCode, responseData, codigo);
+                        Console.WriteLine($"[SG1] Error al enviar estructura {parent.Key}: {ex.Message}");
+                        Utilidades.EscribirEnLog($"[SG1] EXCEPCIÓN POST {parent.Key}: {ex.Message}");
                     }
                 }
             }
@@ -322,66 +121,69 @@ namespace WEB_SERVICE_RICHIGER
 
         public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1()
         {
-  
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
 
-            string query = @"WITH CTE_Hierarchy AS(
-                            SELECT DISTINCT
+            string connectionString = Utilidades.ConnectionString;
 
-                                Occurrence.id_table,
-                                ProductRevision.name,
-                                Product.productId AS codigo,
-                                SUM(TRY_CAST(CASE
-
-                                    WHEN UserValue_UserData.value = '' THEN '1'
-
-                                    ELSE UserValue_UserData.value
-
-                                END AS FLOAT)) AS Cantidad,
-                                CAST(Occurrence.parentRef AS INT) AS parentRef,
-                                uud2.value AS Variante
-
-                            FROM
-
-                                Occurrence
-
-                            LEFT JOIN ProductRevision ON Occurrence.instancedRef = ProductRevision.id_Table
-
-                            LEFT JOIN Product ON ProductRevision.masterRef = Product.id_Table
-                  
-                            LEFT JOIN UserValue_UserData ON Occurrence.id_Table + 2 = UserValue_UserData.id_Father AND UserValue_UserData.title = 'Quantity'
-
-                            LEFT JOIN UserValue_UserData uud2 ON Occurrence.id_Table - 1 = uud2.id_Father AND uud2.title = 'bl_formula'
-
-                            GROUP BY ProductRevision.name, Product.productId, Occurrence.parentRef, Occurrence.id_table, ProductRevision.id_Table, UserValue_UserData.value,
-                            uud2.value
-                        )
-            SELECT DISTINCT
-                --Parent.id_table AS ParentId,
-                --CASE WHEN Parent.name = 'TX-MEGA GEN3 12-70 150% MBOM' THEN 'TX-MEGA GEN3 12-70 FS MECANICA' ELSE Parent.name END AS ParentName,
-            	Parent.name AS ParentName,
-            	--Parent.codigo AS ParentCodigo,
-                --CASE WHEN Parent.codigo = 'MEGA1270150' THEN '1000004' ELSE Parent.codigo END AS ParentCodigo,
-            	Parent.codigo AS ParentCodigo,
-                Child.name AS ChildName,
-                Child.codigo AS ChildCodigo,
-                SUM(Child.Cantidad) AS CantidadHijo,
-                Child.Variante
-                --SUM(Parent.Cantidad) AS CantidadPadre
-            FROM
-                CTE_Hierarchy Parent
-            INNER JOIN
-                CTE_Hierarchy Child ON Parent.id_table = Child.parentRef
-            WHERE 
-            Parent.codigo <> Child.codigo
-            GROUP BY
-                Parent.id_table,
-                Parent.name,
-                Parent.codigo,
-                Child.name,
-                Child.codigo,
-            	Child.Variante
-            --ORDER BY ParentId";
+            string query = @"WITH CTE_Hierarchy AS (
+    SELECT DISTINCT
+        Occurrence.id_table,
+        ProductRevision.name,
+        CASE 
+          WHEN Product.productId LIKE 'M-%' 
+            THEN SUBSTRING(Product.productId, 3, LEN(Product.productId))
+          WHEN Product.productId LIKE 'P-%' 
+            THEN SUBSTRING(Product.productId, 3, LEN(Product.productId))
+          ELSE Product.productId
+        END AS codigo,
+        SUM(TRY_CAST(
+            CASE
+                WHEN UserValue_UserData.value = '' THEN '1'
+                ELSE UserValue_UserData.value
+            END AS FLOAT
+        )) AS Cantidad,
+        CAST(Occurrence.parentRef AS INT) AS parentRef,
+        uud2.value AS Variante
+    FROM Occurrence
+    LEFT JOIN ProductRevision 
+        ON Occurrence.instancedRef = ProductRevision.id_Table
+    LEFT JOIN Product 
+        ON ProductRevision.masterRef = Product.id_Table
+    LEFT JOIN UserValue_UserData 
+        ON Occurrence.id_Table + 2 = UserValue_UserData.id_Father
+       AND UserValue_UserData.title = 'Quantity'
+    LEFT JOIN UserValue_UserData uud2 
+        ON Occurrence.id_Table - 1 = uud2.id_Father
+       AND uud2.title = 'bl_formula'
+    WHERE ProductRevision.subType <> 'Ric4_Ingenieria'
+      AND Product.subType <> 'Ric4_Ingenieria'
+    GROUP BY
+        ProductRevision.name,
+        Product.productId,
+        Occurrence.parentRef,
+        Occurrence.id_table,
+        ProductRevision.id_Table,
+        UserValue_UserData.value,
+        uud2.value
+)
+SELECT DISTINCT
+    Parent.name AS ParentName,
+    Parent.codigo AS ParentCodigo,
+    Child.name AS ChildName,
+    Child.codigo AS ChildCodigo,
+    SUM(Child.Cantidad) AS CantidadHijo,
+    Child.Variante
+FROM CTE_Hierarchy Parent
+INNER JOIN CTE_Hierarchy Child
+    ON Parent.id_table = Child.parentRef
+WHERE Parent.codigo <> Child.codigo
+GROUP BY
+    Parent.id_table,
+    Parent.name,
+    Parent.codigo,
+    Child.name,
+    Child.codigo,
+    Child.Variante;
+";
 
             Dictionary<string, List<List<Dictionary<string, string>>>> estructuras = new Dictionary<string, List<List<Dictionary<string, string>>>>();
             try
@@ -405,13 +207,14 @@ namespace WEB_SERVICE_RICHIGER
                                 string parentCodigo = reader["ParentCodigo"]?.ToString();
                                 string childName = reader["ChildName"]?.ToString() ?? string.Empty;
                                 string childCodigo = reader["ChildCodigo"]?.ToString() ?? string.Empty;
-                                string cantidadHijo = reader["CantidadHijo"]?.ToString().Replace(',', '.') ?? string.Empty;
+                                string cantidadHijoRaw = (reader["CantidadHijo"]?.ToString() ?? "0").Replace(',', '.');
 
-                                //string parentName = reader["Nombre_Padre"]?.ToString() ?? string.Empty;
-                                //string parentCodigo = reader["Codigo_Padre"]?.ToString();
-                                //string childName = reader["Nombre_Hijo"]?.ToString() ?? string.Empty;
-                                //string childCodigo = reader["Codigo_Hijo"]?.ToString() ?? string.Empty;
-                                //string cantidadHijo = reader["CantidadHijo_Total"]?.ToString().Replace(',', '.') ?? string.Empty;
+                                if (!double.TryParse(cantidadHijoRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out double cantidadVal))
+                                    cantidadVal = 0;
+
+                                cantidadVal = Math.Truncate(cantidadVal * 1000) / 1000.0;
+
+                                string cantidadHijo = cantidadVal.ToString("0.000", CultureInfo.InvariantCulture);
 
                                 if (string.IsNullOrEmpty(parentCodigo))
                                 {
@@ -426,12 +229,8 @@ namespace WEB_SERVICE_RICHIGER
                                     ChildName = childName,
                                     ChildCodigo = childCodigo,
                                     CantidadHijo = cantidadHijo
-                                    
-                                    //Variante = reader.IsDBNull(reader.GetOrdinal("Variante")) ?
-                                    //string.Empty : reader["Variante"].ToString()
                                 };
 
-                                //poblarBaseSG1(parentName, parentCodigo, childName, childCodigo, cantidadHijo);
                                 if (!dataByParent.ContainsKey(model.ParentCodigo))
                                 {
                                     dataByParent[model.ParentCodigo] = new List<DataModel>();
@@ -446,7 +245,6 @@ namespace WEB_SERVICE_RICHIGER
                                 string parentCodigo = parentGroup.Key;
                                 List<DataModel> children = parentGroup.Value;
 
-                                // Skip if parentCodigo is null or empty (should not happen at this point, but just in case)
                                 if (string.IsNullOrEmpty(parentCodigo))
                                 {
                                     Console.WriteLine("WARNING: Skipping group with null or empty ParentCodigo");
@@ -457,48 +255,6 @@ namespace WEB_SERVICE_RICHIGER
                                 {
                                     estructuras[parentCodigo] = new List<List<Dictionary<string, string>>>();
                                 }
-
-                                // Analizamos las condiciones de todos los hijos
-                                var allConditions = new Dictionary<string, List<string>>();
-
-                                foreach (var child in children)
-                                {
-                                    if (!string.IsNullOrEmpty(child.Variante))
-                                    {
-                                        try
-                                        {
-                                            var conditions = ExtractAllConditions(child.Variante);
-                                            foreach (var condition in conditions)
-                                            {
-                                                if (condition.Key == null)
-                                                {
-                                                    Console.WriteLine($"WARNING: Null key found in conditions for Variante: {child.Variante}");
-                                                    continue;
-                                                }
-
-                                                if (!allConditions.ContainsKey(condition.Key))
-                                                {
-                                                    allConditions[condition.Key] = new List<string>();
-                                                }
-
-                                                if (!allConditions[condition.Key].Contains(condition.Value))
-                                                {
-                                                    allConditions[condition.Key].Add(condition.Value);
-                                                }
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine($"Error processing Variante '{child.Variante}': {ex.Message}");
-                                        }
-                                    }
-                                }
-
-                                // Rest of processing with proper null checking...
-                                // (Remaining code follows the same pattern - ensuring no null keys are used)
-
-                                // Process each child and add the relevant conditions
-                                var configCounter = new Dictionary<string, int>();
 
                                 foreach (var child in children)
                                 {
@@ -587,15 +343,6 @@ namespace WEB_SERVICE_RICHIGER
                                     // Only add grupo_opc and opcional if we have a defined group
                                     if (grupoOpc != null)
                                     {
-                                        // Add grupo_opc
-                                       
-
-                                        // Initialize counter for this configuration if it doesn't exist
-                                        if (prefijoOpcional != null && !configCounter.ContainsKey(prefijoOpcional))
-                                        {
-                                            configCounter[prefijoOpcional] = 1;
-                                        }
-
                                         // Format depends on if it's a special case or normal
                                         string valorOpcional;
                                         if (prefijoOpcional != null && prefijoOpcional.Length > 1) // Special case (SSE, SSH, FSE)
@@ -615,12 +362,10 @@ namespace WEB_SERVICE_RICHIGER
 
                                     }
                                     else // Normal case with letter (A, B, C, etc.)
-                                        {
-                                            //valorOpcional = $"{prefijoOpcional ?? "A"}";
-                                        }
+                                    {
+                                        //valorOpcional = $"{prefijoOpcional ?? "A"}";
+                                    }
 
-                                        // Add opcional field
-                                       
                                     estructuras[parentCodigo].Add(childStructure);
                                 }
                             }
@@ -632,23 +377,7 @@ namespace WEB_SERVICE_RICHIGER
             {
                 Console.WriteLine($"Error al consultar la base de datos: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            }
-
-            // Generate and print JSON output
-            foreach (var parent in estructuras)
-            {
-                var jsonBody = new
-                {
-                    producto = parent.Key,
-                    qtdBase = "1",
-                    estructura = parent.Value
-                };
-
-                string jsonData = JsonConvert.SerializeObject(jsonBody, Formatting.Indented);
-
-                // Print the generated JSON
-                Console.WriteLine("JSON generado:");
-                Console.WriteLine(jsonData);
+                Utilidades.EscribirEnLog($"[SG1] EXCEPCIÓN jsonSG1: {ex.Message} | {ex.StackTrace}");
             }
 
             return estructuras;
@@ -656,8 +385,8 @@ namespace WEB_SERVICE_RICHIGER
 
         public static void poblarBaseSG1(string Nombre_Padre, string Codigo_Padre, string Nombre_Hijo, string Codigo_Hijo, string CantidadHijo)
         {
-            
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+
+            string connectionString = Utilidades.ConnectionString;
 
             string query = "INSERT INTO SG1 VALUES (@Nombre_Padre, @Codigo_Padre, @Nombre_Hijo, @Codigo_Hijo, @CantidadHijo, NULL, NULL)";
             try
@@ -686,8 +415,8 @@ namespace WEB_SERVICE_RICHIGER
 
         public static void ActualizarBase(int estado, string mensaje, string codigo)
         {
-            
-            string connectionString = "Data Source=DEPLM-11-PC\\SQLEXPRESS;Initial Catalog=RichigerBOP;User ID=sa;Password=infodba;TrustServerCertificate=True;";
+
+            string connectionString = Utilidades.ConnectionString;
 
             string query = @"UPDATE SG1
                           SET estado = @estado, mensaje = @mensaje
@@ -819,6 +548,138 @@ namespace WEB_SERVICE_RICHIGER
                 }
             }
             return conditions;
+        }
+
+        public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1_BOP()
+        {
+            string connectionString = Utilidades.ConnectionString;
+
+            string query = @"WITH RootProcess AS (
+    SELECT TOP (1)
+        p.name        AS ParentName,
+        CASE
+            WHEN p.catalogueId LIKE 'P-%' THEN SUBSTRING(p.catalogueId, 3, LEN(p.catalogueId))
+            ELSE p.catalogueId
+        END AS ParentCodigo
+    FROM dbo.[ProcessOccurrence] po
+    INNER JOIN dbo.[ProcessRevision] pr
+        ON pr.id_Table = po.instancedRef
+    INNER JOIN dbo.[Process] p
+        ON p.id_Table = pr.masterRef
+    WHERE po.parentRef IS NULL
+),
+OpOccurrences AS (
+    SELECT
+        po_op.id_Table AS OpOccId
+    FROM dbo.[ProcessOccurrence] po_op
+    INNER JOIN dbo.[OperationRevision] opr
+        ON opr.id_Table = po_op.instancedRef
+    INNER JOIN dbo.[Operation] op
+        ON op.id_Table = opr.masterRef
+),
+Consumed AS (
+    SELECT
+        rp.ParentName,
+        rp.ParentCodigo,
+        pr_child.name AS ChildName,
+        CASE
+            WHEN p_child.productId LIKE 'M-%'
+                THEN SUBSTRING(p_child.productId, 3, LEN(p_child.productId))
+            ELSE p_child.productId
+        END AS ChildCodigo,
+        CAST(SUM(
+            TRY_CAST(
+                CASE
+                    WHEN q.value IS NULL OR q.value = '' THEN '1'
+                    ELSE q.value
+                END AS FLOAT
+            )
+        ) AS DECIMAL(18, 6)) AS CantidadHijo
+    FROM dbo.[Occurrence] oc
+    INNER JOIN OpOccurrences opo
+        ON opo.OpOccId = oc.parentRef
+    INNER JOIN dbo.[ProductRevision] pr_child
+        ON pr_child.id_Table = oc.instancedRef
+    INNER JOIN dbo.[Product] p_child
+        ON p_child.id_Table = pr_child.masterRef
+    LEFT JOIN dbo.[UserValue_UserData] q
+        ON oc.id_Table + 2 = q.id_Father
+       AND q.title = 'Quantity'
+    CROSS JOIN RootProcess rp
+    WHERE oc.subType = 'MEConsumed'
+      AND pr_child.subType <> 'Ric4_Ingenieria'
+      AND p_child.subType <> 'Ric4_Ingenieria'
+    GROUP BY
+        rp.ParentName,
+        rp.ParentCodigo,
+        pr_child.name,
+        p_child.productId
+)
+SELECT
+    ParentName,
+    ParentCodigo,
+    ChildName,
+    ChildCodigo,
+    CantidadHijo,
+    NULL AS Variante
+FROM Consumed
+ORDER BY ChildCodigo;";
+
+            Dictionary<string, List<List<Dictionary<string, string>>>> estructuras = new Dictionary<string, List<List<Dictionary<string, string>>>>();
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.CommandTimeout = 1200;
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string parentCodigo = reader["ParentCodigo"]?.ToString();
+                                string childCodigo = reader["ChildCodigo"]?.ToString() ?? string.Empty;
+                                string cantidadHijoRaw = (reader["CantidadHijo"]?.ToString() ?? "0").Replace(',', '.');
+
+                                if (!double.TryParse(cantidadHijoRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out double cantidadVal))
+                                    cantidadVal = 0;
+
+                                cantidadVal = Math.Truncate(cantidadVal * 1000) / 1000.0;
+
+                                string cantidadHijo = cantidadVal.ToString("0.000", CultureInfo.InvariantCulture);
+
+                                if (string.IsNullOrEmpty(parentCodigo))
+                                {
+                                    continue;
+                                }
+
+                                if (!estructuras.ContainsKey(parentCodigo))
+                                {
+                                    estructuras[parentCodigo] = new List<List<Dictionary<string, string>>>();
+                                }
+
+                                // Estructura simple para BOP (sin variantes)
+                                var childStructure = new List<Dictionary<string, string>>
+                            {
+                                new Dictionary<string, string> { { "campo", "codigo" }, { "valor", childCodigo } },
+                                new Dictionary<string, string> { { "campo", "cantidad" }, { "valor", cantidadHijo } }
+                            };
+
+                                estructuras[parentCodigo].Add(childStructure);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error jsonSG1_BOP: {ex.Message}");
+                Utilidades.EscribirEnLog($"[SG1] EXCEPCIÓN jsonSG1_BOP: {ex.Message}");
+            }
+
+            return estructuras;
         }
     }
 }
