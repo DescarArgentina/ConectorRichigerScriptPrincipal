@@ -1,0 +1,12 @@
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.AssemblyInfoInputs.cache
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.AssemblyInfo.cs
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.csproj.CoreCompileInputs.cache
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.sourcelink.json
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\bin\Debug\net8.0\ComprobarLog.deps.json
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\bin\Debug\net8.0\ComprobarLog.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\bin\Debug\net8.0\ComprobarLog.pdb
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\refint\ComprobarLog.dll
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ComprobarLog.pdb
+C:\Users\PC-01\Desktop\Proyectos\Richiger\ConectorRichiger\ComprobarLog\obj\Debug\net8.0\ref\ComprobarLog.dll

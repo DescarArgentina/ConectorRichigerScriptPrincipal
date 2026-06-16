@@ -27,6 +27,7 @@ namespace WEB_SERVICE_RICHIGER
 
     public class Tabla_SG1
     {
+        private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(10);
         private readonly HttpClient _httpClient;
         public Tabla_SG1()
         {
@@ -40,7 +41,7 @@ namespace WEB_SERVICE_RICHIGER
             string username = "ADMIN";
             string password = "Totvs2024##";
 
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = new HttpClient { Timeout = RequestTimeout })
             {
                 var credentials = Encoding.ASCII.GetBytes($"{username}:{password}");
                 client.DefaultRequestHeaders.Authorization =
@@ -73,6 +74,7 @@ namespace WEB_SERVICE_RICHIGER
                         if (statusCodePost >= 200 && statusCodePost <= 299)
                         {
                             Console.WriteLine($"[SG1] POST {parent.Key} -> OK ({statusCodePost})");
+                            Utilidades.EscribirEnLog($"[SG1] POST {parent.Key} -> OK ({statusCodePost})");
                             continue;
                         }
 
@@ -88,10 +90,12 @@ namespace WEB_SERVICE_RICHIGER
                             if (statusCodePut >= 200 && statusCodePut <= 299)
                             {
                                 Console.WriteLine($"[SG1] PUT  {parent.Key} -> OK ({statusCodePut})");
+                                Utilidades.EscribirEnLog($"[SG1] PUT {parent.Key} -> OK ({statusCodePut})");
                             }
                             else
                             {
                                 Console.WriteLine($"[SG1] PUT  {parent.Key} -> ERROR ({statusCodePut}): {responsePut}");
+                                Utilidades.EscribirEnLog($"[SG1] PUT {parent.Key} -> ERROR ({statusCodePut}): {responsePut}");
                             }
 
                             continue;
@@ -99,10 +103,17 @@ namespace WEB_SERVICE_RICHIGER
 
                         // Otros códigos: loguear el cuerpo de respuesta para diagnóstico
                         Console.WriteLine($"[SG1] POST {parent.Key} -> ERROR ({statusCodePost}): {responsePost}");
+                        Utilidades.EscribirEnLog($"[SG1] POST {parent.Key} -> ERROR ({statusCodePost}): {responsePost}");
+                    }
+                    catch (TaskCanceledException ex)
+                    {
+                        Console.WriteLine($"[SG1] TIMEOUT enviando estructura {parent.Key} tras {RequestTimeout.TotalSeconds:0} segundos: {ex.Message}");
+                        Utilidades.EscribirEnLog($"[SG1] TIMEOUT POST {parent.Key} tras {RequestTimeout.TotalSeconds:0} segundos: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[SG1] Error al enviar estructura {parent.Key}: {ex.Message}");
+                        Utilidades.EscribirEnLog($"[SG1] EXCEPCIÓN POST {parent.Key}: {ex.Message}");
                     }
                 }
             }
@@ -111,7 +122,7 @@ namespace WEB_SERVICE_RICHIGER
         public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1()
         {
 
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = @"WITH CTE_Hierarchy AS (
     SELECT DISTINCT
@@ -201,9 +212,9 @@ GROUP BY
                                 if (!double.TryParse(cantidadHijoRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out double cantidadVal))
                                     cantidadVal = 0;
 
-                                cantidadVal = Math.Truncate(cantidadVal * 100) / 100.0;
+                                cantidadVal = Math.Truncate(cantidadVal * 1000) / 1000.0;
 
-                                string cantidadHijo = cantidadVal.ToString("0.00", CultureInfo.InvariantCulture);
+                                string cantidadHijo = cantidadVal.ToString("0.000", CultureInfo.InvariantCulture);
 
                                 if (string.IsNullOrEmpty(parentCodigo))
                                 {
@@ -366,6 +377,7 @@ GROUP BY
             {
                 Console.WriteLine($"Error al consultar la base de datos: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                Utilidades.EscribirEnLog($"[SG1] EXCEPCIÓN jsonSG1: {ex.Message} | {ex.StackTrace}");
             }
 
             return estructuras;
@@ -374,7 +386,7 @@ GROUP BY
         public static void poblarBaseSG1(string Nombre_Padre, string Codigo_Padre, string Nombre_Hijo, string Codigo_Hijo, string CantidadHijo)
         {
 
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = "INSERT INTO SG1 VALUES (@Nombre_Padre, @Codigo_Padre, @Nombre_Hijo, @Codigo_Hijo, @CantidadHijo, NULL, NULL)";
             try
@@ -404,7 +416,7 @@ GROUP BY
         public static void ActualizarBase(int estado, string mensaje, string codigo)
         {
 
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = @"UPDATE SG1
                           SET estado = @estado, mensaje = @mensaje
@@ -540,7 +552,7 @@ GROUP BY
 
         public static Dictionary<string, List<List<Dictionary<string, string>>>> jsonSG1_BOP()
         {
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = @"WITH RootProcess AS (
     SELECT TOP (1)
@@ -634,9 +646,9 @@ ORDER BY ChildCodigo;";
                                 if (!double.TryParse(cantidadHijoRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out double cantidadVal))
                                     cantidadVal = 0;
 
-                                cantidadVal = Math.Truncate(cantidadVal * 100) / 100.0;
+                                cantidadVal = Math.Truncate(cantidadVal * 1000) / 1000.0;
 
-                                string cantidadHijo = cantidadVal.ToString("0.00", CultureInfo.InvariantCulture);
+                                string cantidadHijo = cantidadVal.ToString("0.000", CultureInfo.InvariantCulture);
 
                                 if (string.IsNullOrEmpty(parentCodigo))
                                 {
@@ -664,6 +676,7 @@ ORDER BY ChildCodigo;";
             catch (Exception ex)
             {
                 Console.WriteLine($"Error jsonSG1_BOP: {ex.Message}");
+                Utilidades.EscribirEnLog($"[SG1] EXCEPCIÓN jsonSG1_BOP: {ex.Message}");
             }
 
             return estructuras;

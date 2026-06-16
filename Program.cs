@@ -17,15 +17,28 @@ namespace Web_Service
         // -----------------------------------------------------------------------------------------
         // CONFIG
         // -----------------------------------------------------------------------------------------
-        private const string ConnectionString =
-            "Data Source=SRV-PLM-01;Initial Catalog=procesosProductivos;User Id=infodba;Password=infodba;TrustServerCertificate=True;";
+        private static bool ModoRichiger = true;
 
-        private const string BaseProcesados = @"C:\DescarConector\02.1 PROCESADOS";
+        private static readonly string ConnectionString = ModoRichiger
+            ? Utilidades.ConnectionStringRichiger
+            : Utilidades.ConnectionStringDescar;
+
+        private static readonly string BaseProcesados = ModoRichiger
+            ? @"C:\DescarConector\02.1 PROCESADOS"
+            : @"C:\Richiger\mbomRichiger_procesados";
         private static readonly string CarpetaOK = Path.Combine(BaseProcesados, "OK");
         private static readonly string CarpetaERROR = Path.Combine(BaseProcesados, "ERROR");
 
-        private const string RutaGeneralLog = @"C:\DescarConector\ScriptPrincipal.log";
+        private static readonly string RutaGeneralLog = ModoRichiger
+            ? @"C:\DescarConector\ScriptPrincipal.log"
+            : @"C:\Richiger\logs\ScriptPrincipal.log";
+        private static readonly string CarpetaLogsDescar = @"C:\Richiger\logs";
+        private static readonly string DescarMbomFolderPath = @"C:\Richiger\mbomRichiger";
+        private static readonly string DescarMbomProcesadaPath = @"C:\Richiger\mbomRichiger_procesados";
+        private static readonly string DescarBopPendientesPath = @"C:\Richiger\BopRichiger";
+        private static readonly string DescarBopProcesadasPath = @"C:\Richiger\BopRichiger_procesados";
         private const string NombreLogCarpeta = "procesamiento.log";
+        private const string NombreComparador = "comparador.txt";
         private const string NombreBopError = "BOP_Error";
 
         // -----------------------------------------------------------------------------------------
@@ -38,11 +51,24 @@ namespace Web_Service
         //   args[3] = bopProcesadasPath    (...\M-BOM_xxx\BOP_Procesadas)
         static async Task<int> Main(string[] args)
         {
+            AplicarModoEjecucion();
+
             if (args.Length < 4)
             {
-                LogGeneral("ERROR: Se requieren 4 argumentos (mbomFolder, mbomProcesada, bopPendientes, bopProcesadas).");
-                Console.WriteLine("ERROR: Se requieren 4 argumentos.");
-                return 1;
+                if (ModoRichiger)
+                {
+                    LogGeneral("ERROR: Se requieren 4 argumentos (mbomFolder, mbomProcesada, bopPendientes, bopProcesadas).");
+                    Console.WriteLine("ERROR: Se requieren 4 argumentos.");
+                    return 1;
+                }
+
+                args = new[]
+                {
+                    DescarMbomFolderPath,
+                    DescarMbomProcesadaPath,
+                    DescarBopPendientesPath,
+                    DescarBopProcesadasPath
+                };
             }
 
             string mbomFolderPath = args[0].TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -51,10 +77,10 @@ namespace Web_Service
             string bopProcesadasPath = args[3];
 
             string nombreCarpeta = Path.GetFileName(mbomFolderPath);
-            string rutaLogCarpeta = Path.Combine(mbomFolderPath, NombreLogCarpeta);
+            string rutaLogCarpeta = ObtenerRutaLogCarpeta(mbomFolderPath);
 
             // Logs internos de SB1/SG1/SG2_SH3 van al mismo archivo de la carpeta
-            Utilidades.LogFolder = mbomFolderPath;
+            Utilidades.LogFolder = ModoRichiger ? mbomFolderPath : CarpetaLogsDescar;
             Utilidades.LogFileName = NombreLogCarpeta;
 
             LogGeneral($"INICIO carpeta: {nombreCarpeta}");
@@ -66,8 +92,15 @@ namespace Web_Service
             {
                 if (!Directory.Exists(mbomFolderPath))
                 {
-                    LogGeneral($"ERROR: No existe carpeta {mbomFolderPath}");
-                    return 1;
+                    if (ModoRichiger)
+                    {
+                        LogGeneral($"ERROR: No existe carpeta {mbomFolderPath}");
+                        return 1;
+                    }
+
+                    Directory.CreateDirectory(mbomFolderPath);
+                    LogGeneral($"Modo Descar: no existia carpeta MBOM {mbomFolderPath}. Se creo y se procesan BOPs pendientes.");
+                    LogCarpeta(rutaLogCarpeta, $"Modo Descar: no existia carpeta MBOM {mbomFolderPath}. Se creo y se procesan BOPs pendientes.");
                 }
 
                 // 1) Buscar MBOM raíz
@@ -75,12 +108,28 @@ namespace Web_Service
                     .Concat(Directory.GetFiles(mbomFolderPath, "*.plmxml", SearchOption.TopDirectoryOnly))
                     .ToArray();
 
+                bool mbomProcesadaOk = false;
+
                 if (mbomFiles.Length == 0)
                 {
+                    if (!ModoRichiger)
+                    {
+                        LogGeneral($"Modo Descar: no se encontro MBOM en {nombreCarpeta}. Se procesan BOPs pendientes.");
+                        LogCarpeta(rutaLogCarpeta, "Modo Descar: no se encontro MBOM. Se procesan BOPs pendientes.");
+                        goto ProcesarBops;
+                    }
+
                     LogGeneral($"ERROR: No se encontró XML raíz (MBOM) en {nombreCarpeta}. Carpeta → ERROR");
                     LogCarpeta(rutaLogCarpeta, "ERROR: No se encontró XML raíz (MBOM).");
-                    MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
-                    return 0;
+                    GenerarComparador(rutaLogCarpeta);
+                    if (ModoRichiger)
+                        MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
+                    if (ModoRichiger)
+                        return 0;
+
+                    LogGeneral($"Modo Descar: no se encontro MBOM en {nombreCarpeta}. Se procesan BOPs pendientes.");
+                    LogCarpeta(rutaLogCarpeta, "Modo Descar: no se encontro MBOM. Se procesan BOPs pendientes.");
+                    goto ProcesarBops;
                 }
 
                 string mbomXml = mbomFiles[0];
@@ -94,11 +143,16 @@ namespace Web_Service
                 {
                     LogGeneral($"MBOM FALLÓ en {nombreCarpeta}. Carpeta → ERROR");
                     LogCarpeta(rutaLogCarpeta, "MBOM procesamiento FALLÓ. Se omiten BOPs.");
-                    Environment.CurrentDirectory = BaseProcesados;
-                    MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
+                    GenerarComparador(rutaLogCarpeta);
+                    if (ModoRichiger)
+                    {
+                        Environment.CurrentDirectory = BaseProcesados;
+                        MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
+                    }
                     return 0;
                 }
 
+                mbomProcesadaOk = true;
                 LogGeneral($"MBOM OK en {nombreCarpeta}");
                 LogCarpeta(rutaLogCarpeta, "MBOM procesada OK.");
 
@@ -114,16 +168,21 @@ namespace Web_Service
                     LogCarpeta(rutaLogCarpeta, $"ADVERTENCIA: no se pudo mover la MBOM: {ex.Message}");
                 }
 
+            ProcesarBops:
                 // 4) Procesar BOPs
                 var bopFiles = Directory.Exists(bopPendientesPath)
                     ? Directory.GetFiles(bopPendientesPath, "*.xml", SearchOption.TopDirectoryOnly)
+                        .Concat(Directory.GetFiles(bopPendientesPath, "*.plmxml", SearchOption.TopDirectoryOnly))
+                        .ToArray()
                     : Array.Empty<string>();
                 Array.Sort(bopFiles, StringComparer.OrdinalIgnoreCase);
 
                 int bopsTotal = bopFiles.Length;
                 int bopsOk = 0;
                 int bopsError = 0;
-                string bopErrorDir = Path.Combine(mbomFolderPath, NombreBopError);
+                string bopErrorDir = ModoRichiger
+                    ? Path.Combine(mbomFolderPath, NombreBopError)
+                    : Path.Combine(bopPendientesPath, NombreBopError);
 
                 Directory.CreateDirectory(bopProcesadasPath);
                 LogCarpeta(rutaLogCarpeta, $"BOPs a procesar: {bopsTotal}");
@@ -164,12 +223,24 @@ namespace Web_Service
                 LogGeneral($"BOPs {nombreCarpeta}: Total={bopsTotal}, OK={bopsOk}, ERROR={bopsError}");
                 LogCarpeta(rutaLogCarpeta, "========================================================");
                 LogCarpeta(rutaLogCarpeta, $"Resumen BOPs: Total={bopsTotal}, OK={bopsOk}, ERROR={bopsError}");
+                GenerarComparador(rutaLogCarpeta);
 
-                // 5) Mover carpeta completa a OK (criterio: si MBOM OK → OK, aunque haya BOPs fallados)
-                // Salir del directorio antes de moverlo para liberar cualquier handle del proceso
-                Environment.CurrentDirectory = BaseProcesados;
-                MoverCarpetaAProcesados(mbomFolderPath, CarpetaOK);
-                LogGeneral($"FIN carpeta {nombreCarpeta} → OK");
+                // 5) En Richiger se mueve la carpeta completa. En Descar la carpeta es la bandeja local de entrada.
+                if (ModoRichiger)
+                {
+                    // Salir del directorio antes de moverlo para liberar cualquier handle del proceso
+                    Environment.CurrentDirectory = BaseProcesados;
+                    MoverCarpetaAProcesados(mbomFolderPath, CarpetaOK);
+                    LogGeneral($"FIN carpeta {nombreCarpeta} → OK");
+                }
+                else
+                {
+                    string estadoMbomDescar = mbomProcesadaOk
+                        ? $"MBOM movida a {mbomProcesadaPath}"
+                        : "sin MBOM procesada";
+                    LogGeneral($"FIN carpeta {nombreCarpeta} en modo Descar. {estadoMbomDescar}");
+                    LogCarpeta(rutaLogCarpeta, $"Modo Descar: carpeta de entrada conservada en {mbomFolderPath}");
+                }
 
                 return 0;
             }
@@ -179,7 +250,8 @@ namespace Web_Service
                 try
                 {
                     LogCarpeta(rutaLogCarpeta, $"EXCEPCIÓN FATAL: {ex}");
-                    if (Directory.Exists(mbomFolderPath))
+                    GenerarComparador(rutaLogCarpeta);
+                    if (ModoRichiger && Directory.Exists(mbomFolderPath))
                         MoverCarpetaAProcesados(mbomFolderPath, CarpetaERROR);
                 }
                 catch { }
@@ -232,6 +304,7 @@ namespace Web_Service
             if (!cargaOk) return false;
 
             bool envioOk = true;
+            bool tieneProcesos = ExisteTabla("ProcessOccurrence") || ExisteTabla("ProcessInstance");
 
             // SB1
             try
@@ -245,6 +318,7 @@ namespace Web_Service
                         foreach (var p in productos)
                         {
                             Console.WriteLine(p);
+                            LogCarpeta(logCarpeta, $"SB1 JSON: {p}");
                             await Tabla_SB1.postSB1(p);
                         }
                     }
@@ -255,13 +329,14 @@ namespace Web_Service
                 }
                 else
                 {
-                    if (ExisteTabla("ProcessOccurrence"))
+                    if (tieneProcesos)
                     {
                         var productos = Tabla_SB1.jsonSB1_BOP();
                         LogCarpeta(logCarpeta, $"SB1 BOP: {productos.Count} productos");
                         foreach (var p in productos)
                         {
                             Console.WriteLine(p);
+                            LogCarpeta(logCarpeta, $"SB1 JSON: {p}");
                             await Tabla_SB1.postSB1(p);
                         }
                     }
@@ -286,6 +361,7 @@ namespace Web_Service
                     {
                         var estructuras = Tabla_SG1.jsonSG1();
                         LogCarpeta(logCarpeta, $"SG1 MBOM: {estructuras.Count} estructuras");
+                        LogCarpeta(logCarpeta, $"SG1 JSON: {JsonConvert.SerializeObject(estructuras)}");
                         await Tabla_SG1.postSG1(estructuras);
                     }
                     else
@@ -295,10 +371,11 @@ namespace Web_Service
                 }
                 else
                 {
-                    if (ExisteTabla("ProcessOccurrence"))
+                    if (tieneProcesos)
                     {
                         var estructuras = Tabla_SG1.jsonSG1_BOP();
                         LogCarpeta(logCarpeta, $"SG1 BOP: {estructuras.Count} estructuras");
+                        LogCarpeta(logCarpeta, $"SG1 JSON: {JsonConvert.SerializeObject(estructuras)}");
                         await Tabla_SG1.postSG1(estructuras);
                     }
                     else
@@ -316,13 +393,14 @@ namespace Web_Service
             // SG2/SH3 (solo si hay ProcessOccurrence - típico de BOPs)
             try
             {
-                if (ExisteTabla("ProcessOccurrence"))
+                if (tieneProcesos)
                 {
                     var procesos = Tablas_SG2_SH3.jsonSG2_SH3();
                     LogCarpeta(logCarpeta, $"SG2/SH3: {procesos.Count} items");
                     foreach (string j in procesos)
                     {
                         Console.WriteLine(j);
+                        LogCarpeta(logCarpeta, $"SG2/SH3 JSON: {j}");
                         await Tablas_SG2_SH3.postSG2_SH3(j);
                     }
                 }
@@ -343,6 +421,29 @@ namespace Web_Service
         // -----------------------------------------------------------------------------------------
         // HELPERS: movimiento y logging
         // -----------------------------------------------------------------------------------------
+        private static void AplicarModoEjecucion()
+        {
+            Utilidades.ConnectionString = ConnectionString;
+            Directory.CreateDirectory(BaseProcesados);
+            if (!ModoRichiger)
+            {
+                Directory.CreateDirectory(CarpetaLogsDescar);
+                Directory.CreateDirectory(DescarMbomProcesadaPath);
+                Directory.CreateDirectory(DescarBopProcesadasPath);
+                Utilidades.LogFolder = CarpetaLogsDescar;
+                Utilidades.LogFileName = NombreLogCarpeta;
+            }
+        }
+
+        private static string ObtenerRutaLogCarpeta(string mbomFolderPath)
+        {
+            if (ModoRichiger)
+                return Path.Combine(mbomFolderPath, NombreLogCarpeta);
+
+            string nombreCarpeta = Path.GetFileName(mbomFolderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            return Path.Combine(CarpetaLogsDescar, $"{nombreCarpeta}_{NombreLogCarpeta}");
+        }
+
         private static void MoverArchivo(string archivoOrigen, string carpetaDestino)
         {
             Directory.CreateDirectory(carpetaDestino);
@@ -379,7 +480,7 @@ namespace Web_Service
                 catch (IOException ex) when (i < intentos - 1)
                 {
                     // Loggeamos el detalle completo para saber qué archivo está bloqueado
-                    string logPath = Path.Combine(carpetaOrigen, NombreLogCarpeta);
+                    string logPath = ObtenerRutaLogCarpeta(carpetaOrigen);
                     LogCarpeta(logPath, $"REINTENTO {i + 1}/{ intentos - 1} mover carpeta. Motivo: {ex.Message}");
                     Thread.Sleep(2000);
                 }
@@ -411,6 +512,24 @@ namespace Web_Service
                     Encoding.UTF8);
             }
             catch { }
+        }
+
+        private static void GenerarComparador(string rutaLog)
+        {
+            try
+            {
+                string? carpeta = Path.GetDirectoryName(rutaLog);
+                if (string.IsNullOrWhiteSpace(carpeta))
+                    return;
+
+                string rutaComparador = Path.Combine(carpeta, NombreComparador);
+                string generado = ComprobarLog.GeneradorComprobar.Generar(rutaLog, rutaComparador);
+                LogCarpeta(rutaLog, $"Archivo comparador generado: {generado}");
+            }
+            catch (Exception ex)
+            {
+                LogCarpeta(rutaLog, $"ADVERTENCIA: no se pudo generar {NombreComparador}: {ex.Message}");
+            }
         }
 
         // -----------------------------------------------------------------------------------------

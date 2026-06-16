@@ -66,15 +66,18 @@ namespace WEB_SERVICE_RICHIGER
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine($"[SB1] POST {codigo} -> OK ({statusCode})");
+                        Utilidades.EscribirEnLog($"[SB1] POST {codigo} -> OK ({statusCode})");
                     }
                     else
                     {
                         Console.WriteLine($"[SB1] POST {codigo} -> ERROR ({statusCode}): {responseData}");
+                        Utilidades.EscribirEnLog($"[SB1] POST {codigo} -> ERROR ({statusCode}): {responseData}");
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error al consumir el servicio SB1 post para {codigo}: {ex.Message}");
+                    Utilidades.EscribirEnLog($"[SB1] EXCEPCIÓN POST {codigo}: {ex.Message}");
                 }
             }
         }
@@ -125,15 +128,18 @@ namespace WEB_SERVICE_RICHIGER
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine($"[SB1] PUT  {codigo} -> OK ({statusCode})");
+                        Utilidades.EscribirEnLog($"[SB1] PUT {codigo} -> OK ({statusCode})");
                     }
                     else
                     {
                         Console.WriteLine($"[SB1] PUT  {codigo} -> ERROR ({statusCode}): {responseData}");
+                        Utilidades.EscribirEnLog($"[SB1] PUT {codigo} -> ERROR ({statusCode}): {responseData}");
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error al consumir el servicio SB1 put para {codigo}: {ex.Message}");
+                    Utilidades.EscribirEnLog($"[SB1] EXCEPCIÓN PUT {codigo}: {ex.Message}");
                 }
             }
         }
@@ -141,7 +147,7 @@ namespace WEB_SERVICE_RICHIGER
         public static List<string> jsonSB1()
         {
             //string connectionString = "Data Source=DEPLM-07-PC\\SQLEXPRESS;Initial Catalog=RichigerMBOM;User ID=sa;Password=infodba";
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = @"SELECT DISTINCT
     Product.id_Table,
@@ -232,6 +238,7 @@ GROUP BY
             catch (Exception ex)
             {
                 Console.WriteLine($"Error al consultar la base de datos: {ex.Message}");
+                Utilidades.EscribirEnLog($"[SB1] EXCEPCIÓN jsonSB1: {ex.Message}");
             }
 
             return jsonProductos;
@@ -239,7 +246,7 @@ GROUP BY
 
         public static List<string> jsonSB1_BOP()
         {
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string queryMain = @"WITH ConsumedRaw AS (
     SELECT
@@ -336,6 +343,7 @@ ORDER BY codigo;
             catch (Exception ex)
             {
                 Console.WriteLine($"Error jsonSB1_BOP: {ex.Message}");
+                Utilidades.EscribirEnLog($"[SB1] EXCEPCIÓN jsonSB1_BOP: {ex.Message}");
             }
             return jsonProductos;
         }
@@ -343,7 +351,7 @@ ORDER BY codigo;
         public static void poblarBase(string codigo, string descripcion, string tipo, string deposito, string unMedida, string revision, int estado, string mensaje)
         {
             //string connectionString = "Data Source=DEPLM-07-PC\\SQLEXPRESS;Initial Catalog=ProtheusDescar;User ID=sa;Password=infodba";
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = "  INSERT INTO SB1 (codigo, descripcion, tipo, deposito, unMedida, revision, estado, mensaje)\r\nSELECT @codigo, @descripcion, @tipo, @deposito, @unMedida, @revision, @estado, @mensaje\r\nWHERE NOT EXISTS (SELECT 1 FROM SB1 WHERE codigo = @codigo)";
             try
@@ -376,7 +384,7 @@ ORDER BY codigo;
         public static void ActualizarBase(int estado, string mensaje, string codigo, string descripcion)
         {
             //string connectionString = "Data Source=DEPLM-07-PC\\SQLEXPRESS;Initial Catalog=ProtheusDescar;User ID=sa;Password=infodba";
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
             string query = @"UPDATE SB1
                           SET estado = @estado, mensaje = @mensaje

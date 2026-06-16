@@ -52,15 +52,18 @@ namespace WEB_SERVICE_RICHIGER
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine($"[SG2_SH3] POST {codigo} -> OK ({statusCode})");
+                        Utilidades.EscribirEnLog($"[SG2_SH3] POST {codigo} -> OK ({statusCode})");
                     }
                     else
                     {
                         Console.WriteLine($"[SG2_SH3] POST {codigo} -> ERROR ({statusCode}): {responseData}");
+                        Utilidades.EscribirEnLog($"[SG2_SH3] POST {codigo} -> ERROR ({statusCode}): {responseData}");
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[SG2_SH3] Error al consumir el servicio post para {codigo}: {ex.Message}");
+                    Utilidades.EscribirEnLog($"[SG2_SH3] EXCEPCIÓN POST {codigo}: {ex.Message}");
                 }
             }
         }
@@ -198,17 +201,19 @@ namespace WEB_SERVICE_RICHIGER
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"[SG2_SH3] PUT  {codigo} -> OK ({(int)response.StatusCode})");
+                Utilidades.EscribirEnLog($"[SG2_SH3] PUT {codigo} -> OK ({(int)response.StatusCode})");
             }
             else
             {
                 Console.WriteLine($"[SG2_SH3] PUT  {codigo} -> ERROR ({(int)response.StatusCode}): {body}");
+                Utilidades.EscribirEnLog($"[SG2_SH3] PUT {codigo} -> ERROR ({(int)response.StatusCode}): {body}");
             }
         }
 
         public static List<string> jsonSG2_SH3()
         {
             //string connectionString = "Server=DEPLM-07-PC\\SQLEXPRESS;Database=RichigerBOP;Trusted_Connection=True;";
-            string connectionString = "Data Source=PC-01\\SQLEXPRESS;Initial Catalog=RichigerBOP;Integrated Security=True;TrustServerCertificate=True;";
+            string connectionString = Utilidades.ConnectionString;
 
 
             string queryMain = @"WITH ProcessData AS (
@@ -219,7 +224,6 @@ namespace WEB_SERVICE_RICHIGER
         CAST(po.parentRef AS BIGINT) AS ParentRef,
         COALESCE(p.subType, o.subType) AS subtype,
         po.idXml AS idXml,
-        f_mast.name AS masterFormName,
         uv_setup.value AS setup_value
     FROM dbo.ProcessOccurrence po
     LEFT JOIN dbo.ProcessRevision pr
@@ -230,12 +234,9 @@ namespace WEB_SERVICE_RICHIGER
            ON opr.id_Table = po.instancedRef AND po.idXml = opr.idXml
     LEFT JOIN dbo.Operation o
            ON o.id_Table = opr.masterRef AND opr.idXml = o.idXml
-    LEFT JOIN dbo.Form f_mast
-           ON f_mast.name = p.catalogueId + '/' + pr.revision
-          AND f_mast.idXml = po.idXml
     LEFT JOIN dbo.UserValue_UserData uv_setup
-           ON uv_setup.id_Father = f_mast.id_Table + 1
-          AND uv_setup.idXml     = f_mast.idXml
+           ON uv_setup.id_Father = pr.id_Table + 1
+          AND uv_setup.idXml     = pr.idXml
           AND uv_setup.title     = 'ric4_Setup'
 ),
 RootProcessData AS (
@@ -268,6 +269,7 @@ WorkAreaOcc_All AS (
 ),
 RankedData AS (
     SELECT DISTINCT
+        po.id_Table    AS processOccurrenceId,
         p.catalogueId  AS instancedProcess,
         wa.catalogueId AS instancedWorkArea,
         wa.name,
@@ -321,9 +323,9 @@ TA_ByPO AS (
 SELECT 
     MEProcess.catalogueId AS Process_catalogueId,
     MEProcess.name        AS Process_name,
-    CAST(COALESCE(ROUND(ta.ta_seconds, 0), 0) AS INT) AS tiempo_segundos,
-    MEOP.catalogueId      AS Operation_catalogueId,
-    MEOP.name             AS Operation_name,
+    CAST(COALESCE(ROUND(ta_proc.ta_seconds, 0), 0) AS INT) AS tiempo_segundos,
+    NULL                  AS Operation_catalogueId,
+    NULL                  AS Operation_name,
     rd.name               AS Workarea_name,
     rd.instancedWorkArea  AS Workarea_code,
     REPLACE(REPLACE(rpd.rootProcessId, 'P-', ''), 'M-', '') AS codigo,
@@ -334,26 +336,21 @@ SELECT
     'UN' AS [Unidad de Medida],
     MEProcess.idXml,
     COALESCE(
-      TRY_CONVERT(decimal(18,2), REPLACE(NULLIF(MEProcess.setup_value,''), ',', '.')),
+      TRY_CONVERT(decimal(18,4), REPLACE(NULLIF(LTRIM(RTRIM(MEProcess.setup_value)),''), ',', '.')),
       0.00
     ) AS SetupTime
 FROM ProcessData AS MEProcess
-LEFT JOIN ProcessData AS MEOP
-  ON MEProcess.idTable = MEOP.ParentRef
- AND MEProcess.subType = 'MEProcess'
- AND MEOP.subtype      = 'MEOP'
- AND MEProcess.idXml   = MEOP.idXml
 JOIN RankedData rd 
-  ON rd.instancedProcess = MEProcess.catalogueId
+  ON rd.processOccurrenceId = MEProcess.idTable
  AND rd.idXml            = MEProcess.idXml
 JOIN RootProcessData rpd
   ON rpd.idXml = MEProcess.idXml
 JOIN dbo.ProcessOccurrence po_me
   ON po_me.id_Table = MEProcess.idTable
  AND po_me.idXml    = MEProcess.idXml
-LEFT JOIN TA_ByPO ta
-  ON ta.poId  = po_me.id_Table
- AND ta.idXml = po_me.idXml
+LEFT JOIN TA_ByPO ta_proc
+  ON ta_proc.poId  = po_me.id_Table
+ AND ta_proc.idXml = po_me.idXml
 WHERE MEProcess.subType = 'MEProcess'
 ORDER BY MEProcess.catalogueId;
 
@@ -367,7 +364,6 @@ ORDER BY MEProcess.catalogueId;
         CAST(po.parentRef AS BIGINT) AS ParentRef,
         COALESCE(p.subType, o.subType) AS subtype,
         po.idXml AS idXml,
-        f_mast.name AS masterFormName,
         uv_setup.value AS setup_value
     FROM dbo.ProcessOccurrence po
     LEFT JOIN dbo.ProcessRevision pr
@@ -378,12 +374,9 @@ ORDER BY MEProcess.catalogueId;
            ON opr.id_Table = po.instancedRef AND po.idXml = opr.idXml
     LEFT JOIN dbo.Operation o
            ON o.id_Table = opr.masterRef AND opr.idXml = o.idXml
-    LEFT JOIN dbo.Form f_mast
-           ON f_mast.name = p.catalogueId + '/' + pr.revision
-          AND f_mast.idXml = po.idXml
     LEFT JOIN dbo.UserValue_UserData uv_setup
-           ON uv_setup.id_Father = f_mast.id_Table + 1
-          AND uv_setup.idXml     = f_mast.idXml
+           ON uv_setup.id_Father = pr.id_Table + 1
+          AND uv_setup.idXml     = pr.idXml
           AND uv_setup.title     = 'ric4_Setup'
 ),
 RootProcessData AS (
@@ -396,7 +389,8 @@ RootProcessData AS (
       AND pd.ParentRef IS NULL
 ),
 RankedData AS (
-    SELECT
+    SELECT DISTINCT
+        po.id_Table AS processOccurrenceId,
         p.catalogueId AS instancedProcess,
         wa.catalogueId AS instancedWorkArea,
         wa.name,
@@ -457,9 +451,9 @@ TA_ByPO AS (
 SELECT
     MEProcess.catalogueId AS Process_catalogueId,
     MEProcess.name AS Process_name,
-    CAST(COALESCE(ROUND(ta.ta_seconds, 0), 0) AS INT) AS tiempo_segundos,
-    MEOP.catalogueId AS Operation_catalogueId,
-    MEOP.name AS Operation_name,
+    CAST(COALESCE(ROUND(ta_proc.ta_seconds, 0), 0) AS INT) AS tiempo_segundos,
+    NULL AS Operation_catalogueId,
+    NULL AS Operation_name,
     rd.name AS Workarea_name,
     rd.instancedWorkArea AS Workarea_code,
     REPLACE(REPLACE(rpd.rootProcessId, 'P-', ''), 'M-', '') AS codigo,
@@ -470,26 +464,21 @@ SELECT
     'UN' AS [Unidad de Medida],
     MEProcess.idXml,
     COALESCE(
-        TRY_CONVERT(decimal(18,2), REPLACE(NULLIF(MEProcess.setup_value,''), ',', '.')),
+        TRY_CONVERT(decimal(18,4), REPLACE(NULLIF(LTRIM(RTRIM(MEProcess.setup_value)),''), ',', '.')),
         0.00
     ) AS SetupTime
 FROM ProcessData AS MEProcess
-LEFT JOIN ProcessData AS MEOP
-  ON MEProcess.idTable = MEOP.ParentRef
- AND MEProcess.subType = 'MEProcess'
- AND MEOP.subtype      = 'MEOP'
- AND MEProcess.idXml   = MEOP.idXml
 JOIN RankedData rd
-  ON rd.instancedProcess = MEProcess.catalogueId
+  ON rd.processOccurrenceId = MEProcess.idTable
  AND rd.idXml            = MEProcess.idXml
 JOIN RootProcessData rpd
   ON rpd.idXml = MEProcess.idXml
 JOIN dbo.ProcessOccurrence po_me
   ON po_me.id_Table = MEProcess.idTable
  AND po_me.idXml    = MEProcess.idXml
-LEFT JOIN TA_ByPO ta
-  ON ta.poId  = po_me.id_Table
- AND ta.idXml = po_me.idXml
+LEFT JOIN TA_ByPO ta_proc
+  ON ta_proc.poId  = po_me.id_Table
+ AND ta_proc.idXml = po_me.idXml
 WHERE MEProcess.subType = 'MEProcess'
 ORDER BY MEProcess.catalogueId;
 
@@ -544,6 +533,7 @@ ORDER BY MEProcess.catalogueId;
             catch (Exception ex)
             {
                 Console.WriteLine("Error jsonSG2_SH3: " + ex.Message);
+                Utilidades.EscribirEnLog($"[SG2_SH3] EXCEPCIÓN jsonSG2_SH3: {ex.Message}");
             }
 
             return jsonProductos;
@@ -584,7 +574,7 @@ ORDER BY MEProcess.catalogueId;
 
                 if (seconds <= 0)
                 {
-                    // Si el tiempo es 0, enviar 0.01 y lote 60 según requerimiento
+                    // El ERP no acepta tiempo 0; se informa el minimo permitido.
                     tiempoFormatted = "00.01";
                     loteFormatted = "60";
                 }
@@ -623,7 +613,7 @@ ORDER BY MEProcess.catalogueId;
                 string nombreProceso = reader["Process_name"]?.ToString();
                 // string cenTrab = reader["Workarea_code"]?.ToString(); // Ya leido arriba
                 decimal dSetup = reader["SetupTime"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["SetupTime"], CultureInfo.InvariantCulture);
-                string setup = dSetup == 0 ? "" : dSetup.ToString("00.00", CultureInfo.InvariantCulture);
+                string setup = FormatearMinutosComoHoraMinuto(dSetup);
 
                 var procedimiento = new Procedimiento
                 {
@@ -661,6 +651,20 @@ ORDER BY MEProcess.catalogueId;
             }
 
             return result;
+        }
+
+        private static string FormatearMinutosComoHoraMinuto(decimal totalMinutos)
+        {
+            if (totalMinutos <= 0)
+                return "00.00";
+
+            long minutosEnteros = (long)Math.Round(totalMinutos, 0, MidpointRounding.AwayFromZero);
+
+            long horas = minutosEnteros / 60;
+            long minutos = minutosEnteros % 60;
+            decimal valor = horas + (minutos / 100m);
+
+            return valor.ToString("00.00", CultureInfo.InvariantCulture);
         }
 
 
